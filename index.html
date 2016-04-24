@@ -1,0 +1,930 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper">
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2016-04-24T09:22:41.000Z"><a href="/2016/04/24/mesos-on-arm/">Apr 24 2016</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2016/04/24/mesos-on-arm/">Mesos on Raspberry Pi</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>At this Friday, I saw a <a href="http://search-hadoop.com/m/0Vlr6TCgPiZz7Ja" target="_blank" rel="external">email</a> mentioned compile Mesos for Raspberry Pi.<br>It is a bit interesting and attracting me, it reminds me the happy time about playing Raspberry Pi when I still was a student two years ago.<br>Now Raspberry Pi is more cheaper over that time (<a href="https://www.adafruit.com/products/2885" target="_blank" rel="external">Raspberry Pi Zero ID: 2885 - $5.00</a>).</p>
+<p>To make Mesos compiled for Raspberry Pi successfully, we have three possible approaches:</p>
+<ol>
+<li>Compile Mesos on Raspberry Pi directly.</li>
+<li>Use cross compiling toolchains to compile Mesos for Raspberry Pi in ARM.</li>
+<li>Compile Mesos on Raspberry Pi virtual machine.</li>
+</ol>
+<p>For first approaches, there are a lot of header files in Mesos <code>stout</code> depenency. This requires huge memory when compiling Mesos and make it impossible to compile Mesos on current Raspberry Pi because of lack of memory.</p>
+<p>For second approaches, it should works theoretically. But Mesos would check the dependent libraries by compiling and running it during configure stage. This mean we need remove those checks in <code>configure</code> file manually. After I removed those checks, I found I fall into another trap: dependencies loops. The minimize dependent libraries for Mesos are <code>zlib</code>, <code>apr</code>, <code>apr-util</code>, <code>subversion</code>. I need to cross compiling and perpare them for Mesos firstly. But I blocked by cross compiling <code>subversion</code> eventually. I found need to solve its dependencies, its dependencies dependencies, its dependencies dependencies dependencies and so on. Seems the only remain possible way is to compile Mesos on Raspberry Pi virtual machine.</p>
+<p><code>qemu-arm</code> could simulate the Raspberry Pi architecture in x86 machine. I found a related <a href="https://github.com/vagrant2use/raspberry" target="_blank" rel="external">vagrant file</a> in github which make it easiler to set up the Raspberry Pi develop environment. However, it has already been out of maintain over 3 years. The debian version it used (Wheezy) is not new enough to compile Mesos as well. So I create a docker image <a href="https://hub.docker.com/r/haosdent/raspberry/" target="_blank" rel="external">haosdent/raspberry</a> based on the newest Raspberry Pi operate system(Jessie) according to its puppet files.</p>
+<p>By this docker image, we could start to compile Mesos for Raspberry Pi.</p>
+<ol>
+<li>Launch the Raspberry Pi Development Environment.</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -i -t --net=host --volume=`<span class="built_in">pwd</span>`/mesos:/root/mesos haosdent/raspberry /bin/bash</span><br></pre></td></tr></table></figure>
+<p>At above command, I mount my local Mesos code into docker container. Keep in mind here, we have to use the master branch of Mesos because of the bundle zookeeper package has updated in the master branch recently. Otherwise we would fail when compiling zookeeper on Raspberry Pi if use the old versions of Mesos.</p>
+<p>Then we use <code>sb2 -eF</code> to enter the virtual machine of Raspberry Pi. The shell prompt looks like</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[SB2 <span class="built_in">emulate</span> raspberry] root@raspberry ~ <span class="comment">#</span></span><br></pre></td></tr></table></figure>
+<p>if you enter the virtual machine of Raspberry Pi successfully.</p>
+<ol>
+<li>Patch <code>pivot_root</code> in Mesos Code</li>
+</ol>
+<p>Currenlty Mesos still would fail when compiling on Raspberry Pi because of the undefined of <code>__NR_pivot_root</code>. I take a look at @lyda’s <a href="https://github.com/lyda/mesos-on-arm/commit/ab4708e5661fc984b50db0e465d689e7b7ba76ef" target="_blank" rel="external">patch for this</a> before. However, it looks incorrect for me. So I modify it to</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">diff --git a/src/linux/fs.cpp b/src/linux/fs.cpp</span><br><span class="line">index 2087b4a..f29ce8a 100644</span><br><span class="line"><span class="comment">--- a/src/linux/fs.cpp</span></span><br><span class="line"><span class="comment">+++ b/src/linux/fs.cpp</span></span><br><span class="line">@@ -444,6 +444,16 @@ Try&lt;Nothing&gt; pivot_root(</span><br><span class="line">   // number for 'pivot_root' on the powerpc architecture, see</span><br><span class="line">   // https://w3challs.com/syscalls/?arch=powerpc_64</span><br><span class="line">   int ret = ::syscall(203, newRoot.c_str(), putOld.c_str());</span><br><span class="line"><span class="addition">+#elif __thumb__</span></span><br><span class="line"><span class="addition">+  // A workaround for arm thumb mode. The magic number '218' is the syscall</span></span><br><span class="line"><span class="addition">+  // number for 'pivot_root' on the arm thumb mode, see</span></span><br><span class="line"><span class="addition">+  // https://w3challs.com/syscalls/?arch=arm_thumb</span></span><br><span class="line"><span class="addition">+  int ret = ::syscall(218, newRoot.c_str(), putOld.c_str());</span></span><br><span class="line"><span class="addition">+#elif __arm__</span></span><br><span class="line"><span class="addition">+  // A workaround for arm. The magic number '9437402' is the syscall</span></span><br><span class="line"><span class="addition">+  // number for 'pivot_root' on the arm architecture, see</span></span><br><span class="line"><span class="addition">+  // https://w3challs.com/syscalls/?arch=arm_strong</span></span><br><span class="line"><span class="addition">+  int ret = ::syscall(9437402, newRoot.c_str(), putOld.c_str());</span></span><br><span class="line"> #else</span><br><span class="line"> #error "pivot_root is not available"</span><br><span class="line"> #endif</span><br></pre></td></tr></table></figure>
+<ol>
+<li>Following <a href="https://github.com/apache/mesos/blob/master/docs/getting-started.md#ubuntu-1404" target="_blank" rel="external">Mesos Getting Started Guide</a></li>
+</ol>
+<p>After finish above prepare works, we could use following commands to start to compile Mesos.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">apt-get install -y tar wget git</span><br><span class="line">apt-get install -y autoconf libtool</span><br><span class="line">apt-get -y install build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev libsasl2-modules maven libapr1-dev libsvn-dev</span><br><span class="line"><span class="built_in">cd</span> ~/mesos</span><br><span class="line">./bootstrap</span><br><span class="line">mkdir build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">../configure --disable-python --disable-java</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+<p>Noted that we disable java and python when compiling. I encounter some tricky problems when compiled with java in Raspberry Pi and not yet to<br>investigate.</p>
+<p>The stage would take quite a long time. It taked more than 8 hours in my slow machine. You could use <code>make -j &lt;number of cores&gt;</code> if your machine have more cpu cores.</p>
+<ol>
+<li>Launch Your First Mesos Task in the Raspberry Pi</li>
+</ol>
+<p>You should build it successfully if your finished above stages. And we could copy the whole packages to our real Raspberry Pi machine. However, some Mesos feautres don’t work in the Raspberry Pi correctly. For example, <code>replicated_log</code> and <code>cgroups</code>. So we need use following commands to start Mesos Master and Mesos Agent.</p>
+<p>4.1 Start Mesos Agent</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-master.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --registry=<span class="keyword">in</span>_memory</span><br></pre></td></tr></table></figure>
+<p>4.2 Start Mesos Agent</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix</span><br></pre></td></tr></table></figure>
+<p>After starting these Mesos components successfully, we can use <code>mesos-execute</code> to launch our Mesos task.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> LIBPROCESS_IP=127.0.0.1</span><br><span class="line"><span class="built_in">export</span> LIBPROCESS_HOSTNAME=127.0.0.1</span><br><span class="line">./src/mesos-execute --master=127.0.0.1:5050 --name=<span class="built_in">test</span> --command=<span class="string">"ls /"</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix</span><br></pre></td></tr></table></figure>
+<p>Now you should found something like</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">I0424 07:16:12.291718  2722 scheduler.cpp:177] Version: 0.29.0</span><br><span class="line">Subscribed with ID <span class="string">'b383e094-b7f2-4841-a737-c4899ef5c81b-0000'</span></span><br><span class="line">Submitted task <span class="string">'test'</span> to agent <span class="string">'b383e094-b7f2-4841-a737-c4899ef5c81b-S0'</span></span><br><span class="line">Received status update TASK_RUNNING <span class="keyword">for</span> task <span class="string">'test'</span></span><br><span class="line">  <span class="built_in">source</span>: SOURCE_EXECUTOR</span><br><span class="line">Received status update TASK_FINISHED <span class="keyword">for</span> task <span class="string">'test'</span></span><br><span class="line">  message: <span class="string">'Command exited with status 0'</span></span><br><span class="line">  <span class="built_in">source</span>: SOURCE_EXECUTOR</span><br></pre></td></tr></table></figure>
+<p>and the stout logs.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">[SB2 <span class="built_in">emulate</span> raspberry] root@precise64 build <span class="comment"># cat /tmp/mesos/slaves/b383e094-b7f2-4841-a737-c4899ef5c81b-S0/frameworks/b383e094-b7f2-4841-a737-c4899ef5c81b-0000/executors/test/runs/latest/stdout</span></span><br><span class="line">Registered executor on 127.0.0.1</span><br><span class="line">Starting task <span class="built_in">test</span></span><br><span class="line">sh -c <span class="string">'ls /'</span></span><br><span class="line">Forked <span class="built_in">command</span> at 2794</span><br><span class="line">bin</span><br><span class="line">boot</span><br><span class="line">dev</span><br><span class="line">etc</span><br><span class="line">home</span><br><span class="line">lib</span><br><span class="line">media</span><br><span class="line">mnt</span><br><span class="line">opt</span><br><span class="line">proc</span><br><span class="line">root</span><br><span class="line">run</span><br><span class="line">sbin</span><br><span class="line">srv</span><br><span class="line">sys</span><br><span class="line">tmp</span><br><span class="line">usr</span><br><span class="line">var</span><br><span class="line">Command exited with status 0 (pid: 2794)</span><br><span class="line">Shutting down</span><br><span class="line">Sending SIGTERM to process tree at pid 2794</span><br><span class="line">Sent SIGTERM to the following process trees:</span><br><span class="line">[</span><br><span class="line"></span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>Yes, they indicate that our Mesos task succeed.</p>
+<p>In additional, if you encounter below error when you want to lauch Mesos in the Raspberry Pi virtual machine. Please make sure you run the docker container with the option <code>--cpuset-cpus=0</code> because qemu had a bug in multi cores environment.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/qemu-1.3.0/tcg/tcg.c:1440: tcg fatal error</span><br></pre></td></tr></table></figure>
+<p>In above content, we show how to compile Mesos for the Raspberry Pi and launch Mesos in the Raspberry Pi. But we still have a lot of works to make Mesos could work on the Raspberry Pi perfectly. Hope this could help you if you are seeking to run Mesos on ARM.</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/mesos/">mesos</a>, <a href="/tags/arm/">arm</a>, <a href="/tags/raspberry/">raspberry</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2016-02-06T09:08:55.000Z"><a href="/2016/02/06/libhbase编译小记/">Feb 6 2016</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2016/02/06/libhbase编译小记/"></a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h2 id="libhbase编译小记"><a href="#libhbase编译小记" class="headerlink" title="libhbase编译小记"></a>libhbase编译小记</h2><p>从MapR的Github上下下来的<code>libhbase</code>后不论在OS X上还是Linux上都编译失败，对照着错误修改了多处地方，使得在OS X上和Linux上都能正常编译和运行。修改过的代码地址：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git@github.com:haosdent/libhbase.git</span><br></pre></td></tr></table></figure>
+<p>编译前先保证<code>ant</code>已安装，使用1.6的JDK作为<code>JAVA_HOME</code>，同时加下<code>203.208.46.222   googletest.googlecode.com</code>到<code>hosts</code>文件（感谢伟大的GFW）。<br>clone代码后直接执行:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn install -DskipTests</span><br></pre></td></tr></table></figure>
+<p>正常结束后可以看到<code>target/libhbase-1.0-SNAPSHOT/</code>这个目录，说明已经编译成功。</p>
+<p><code>libhbase</code>的样例代码可参考<a href="https://github.com/haosdent/libhbase/blob/master/src/examples/async/example_async.c" target="_blank" rel="external">example_async</a>这个文件。</p>
+<p>在Linux下，编译代码时，需要将<code>libhbase.so</code>和<code>libjvm.so</code>加入动态链接库的搜索路径，同时加入先前编译得到的头文件。头文件和<code>libhbase.so</code>分别在<code>target/libhbase-1.0-SNAPSHOT/include</code>目录和<code>target/libhbase-1.0-SNAPSHOT/native</code>目录下，<code>libjvm.so</code>在<code>${JAVA_HOME}/jre/lib/amd64/server</code>目录下，<br>编译命令如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc example_async.c -I $&#123;LIB_HBASE_HOME&#125;/target/libhbase-1.0-SNAPSHOT/include -L $&#123;LIB_HBASE_HOME&#125;/target/libhbase-1.0-SNAPSHOT/lib/native -L $&#123;JAVA_HOME&#125;/jre/lib/amd64/server -l hbase -l jvm -std=c99</span><br></pre></td></tr></table></figure>
+<p>Linux上运行编译好后的文件，也需要将<code>${JAVA_HOME}/jre/lib/amd64/server</code>和<code>target/libhbase-1.0-SNAPSHOT/native</code>加入到<code>LD_LIBRARY_PATH</code>环境变量。</p>
+<p>在OS X下，编译代码与Linux上类似，但需要加入动态链接库搜索路径的是<code>libhbase.dylib</code>和<code>libjvm.dylib</code>，<code>libhbase.dylib</code>在<code>target/libhbase-1.0-SNAPSHOT/native</code>目录下，<code>libhbase.dylib</code>则在<code>${JAVA_HOME}/../Libraries</code>。编译命令如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc example_async.c -I $&#123;LIB_HBASE_HOME&#125;/target/libhbase-1.0-SNAPSHOT/include -L $&#123;LIB_HBASE_HOME&#125;/target/libhbase-1.0-SNAPSHOT/lib/native -L $&#123;JAVA_HOME&#125;/../Libraries -l hbase -l jvm -std=c99</span><br></pre></td></tr></table></figure>
+<p>值得注意的是，OS X上所用gcc需为GNU GCC，而非Apple LLVM Clang，可通过HomeBrew直接安装GCC。</p>
+<p>OS X上运行编译好后的文件，也需要将<code>${JAVA_HOME}/../Libraries</code>和<code>target/libhbase-1.0-SNAPSHOT/native</code>加入到<code>LD_LIBRARY_PATH</code>环境变量。</p>
+<p>最后简单测了下<code>libhbase</code>的写入性能，由于<code>libhbase</code>提供的接口都是异步接口，所以只用了一个线程，往HBase里面插入100w条数据。在写HLog的情况下，写入的QPS在5W每秒左右，基本跑满网卡。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-02-25T12:36:29.000Z"><a href="/2015/02/25/生成IO频谱图/">Feb 25 2015</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/02/25/生成IO频谱图/">生成IO频谱图</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p><a href="http://www.sysdig.org/" target="_blank" rel="external">sysdig</a>是一个强大的调试分析工具，可以很方便地排查网络、磁盘IO、CPU等（<a href="http://www.sysdig.org/wiki/sysdig-examples/" target="_blank" rel="external">例子</a>）。</p>
+<p>另外sysdig有个比较炫酷的功能是可以画IO的频谱图。<br><img src="https://sysdig.com/wp-content/uploads/2014/10/animation.gif" alt="IO频谱图"></p>
+<p>是通过分析open、close、read、write、socket等系统调用的延迟来实时渲染。X坐标轴并非等分，渲染频率默认为一秒两次，从深绿到深红分别表示IO调用的频繁程度。</p>
+<p>或者整个系统的IO频谱图命令为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysdig -c spectrogram 500</span><br></pre></td></tr></table></figure>
+<p>若需指定特定进程，可加上sysdig的<a href="https://github.com/draios/sysdig/wiki/Sysdig%20User%20Guide#filtering" target="_blank" rel="external">filter</a>条件来过滤</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysdig -c spectrogram proc.pid=20</span><br></pre></td></tr></table></figure>
+<p>还可以指定只采样某种类型IO的延迟<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysdig -c spectrogram proc.pid=20 and fd.type=file</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/sysdig/">sysdig</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-24T05:50:13.000Z"><a href="/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/">May 24 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/">阿里云ECS上Hadoop HDFS的简单性能测试</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>在阿里云的ECS上部署了Hadoop，做了下HDFS的简单性能测试，记录如下，性能差距比较大。</p>
+<p>使用的阿里云ECS配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Region</td>
+<td>青岛</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>1核</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>512MB</td>
+</tr>
+<tr>
+<td>实例规格</td>
+<td>ecs.t1.xsmall</td>
+</tr>
+<tr>
+<td>系统盘</td>
+<td>20G</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>CentOS 6.3 64位</td>
+</tr>
+</tbody>
+</table>
+<p>Hadoop HDFS的配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HDFS版本</td>
+<td>社区2.4.0</td>
+</tr>
+<tr>
+<td>集群ECS台数</td>
+<td>6台</td>
+</tr>
+<tr>
+<td>JVM堆大小</td>
+<td>-Xmx400m</td>
+</tr>
+<tr>
+<td>NameNode</td>
+<td>2台ECS</td>
+</tr>
+<tr>
+<td>JournalNode</td>
+<td>1台ECS</td>
+</tr>
+<tr>
+<td>DataNode</td>
+<td>3台ECS</td>
+</tr>
+</tbody>
+</table>
+<p>使用了TestDFSIO在同一个网段的另外一台独立的ECS上做多线程的简单写入和读取速率测试，结果如下（3次测试的平均结果）：</p>
+<table>
+<thead>
+<tr>
+<th>测试类型</th>
+<th>并发数</th>
+<th>每个线程的写入大小</th>
+<th>速率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>写入</td>
+<td>10</td>
+<td>1GB</td>
+<td>24.01MB/s</td>
+</tr>
+<tr>
+<td>读取</td>
+<td>10</td>
+<td>1GB</td>
+<td>40.55MB/s</td>
+</tr>
+</tbody>
+</table>
+<p>虽然是最低配置，但由于机器上没有跑任何额外程序，Hadoop也只启动了HDFS，且测试程序是在另外一台ECS跑，所以正常应该是能跑慢网卡。</p>
+<p>由于DataNode数据为3，所以这个速率可以近似认为是单台DataNode写云磁盘的速率，瓶颈应该还是在云磁盘。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/ECS/">ECS</a>, <a href="/tags/aliyun/">aliyun</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-10T12:20:58.000Z"><a href="/2014/05/10/用perf给Hadoop画CPU火焰图和IO热力图/">May 10 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/10/用perf给Hadoop画CPU火焰图和IO热力图/">用perf给Hadoop画CPU火焰图和IO热力图</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>perf自带的分析结果查看方式主要是tui，这种查看方式是在终端下进行查看。Brendan Gregg大神写了几个Perl脚本，可以将perf的结果转换成更直观的火焰图和热力图，本文以Hadoop的HDFS为例介绍如何以更直观的方式查看perf的分析结果。</p>
+<h4 id="1-安装aliperf和taobao-jdk"><a href="#1-安装aliperf和taobao-jdk" class="headerlink" title="1. 安装aliperf和taobao-jdk"></a>1. 安装aliperf和taobao-jdk</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install aliperf -btest -y</span><br><span class="line">sudo yum install taobao-jdk -y</span><br></pre></td></tr></table></figure>
+<p>因为要分析的是Java程序，只有aliperf和taobao-jdk配合才能解析出JIT符号，不然查看perf的分析结果时，看不到Java代码中对应的方法和类。</p>
+<h4 id="2-修改JVM启动参数"><a href="#2-修改JVM启动参数" class="headerlink" title="2. 修改JVM启动参数"></a>2. 修改JVM启动参数</h4><p>本文用到的Hadoop是社区的trunk版本，要在<code>${HADOOP_HOME}/etc/hadoop-env.sh</code>修改<code>${HADOOP_NAMENODE_OPTS}</code>和<code>${HADOOP_DATANODE_OPTS}</code>这两个变量，让JVM启动时带上<code>libjvmti_perf.so</code>这个插件，如下所示，修改完后重启运行perf的机器上的NameNode和DataNode。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> HADOOP_NAMENODE_OPTS=<span class="string">"-Dhadoop.security.logger=<span class="variable">$&#123;HADOOP_SECURITY_LOGGER:-INFO,RFAS&#125;</span> -Dhdfs.audit.logger=<span class="variable">$&#123;HDFS_AUDIT_LOGGER:-INFO,NullAppender&#125;</span> -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile <span class="variable">$HADOOP_NAMENODE_OPTS</span>"</span></span><br><span class="line"><span class="built_in">export</span> HADOOP_DATANODE_OPTS=<span class="string">"-Dhadoop.security.logger=ERROR,RFAS -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile <span class="variable">$HADOOP_DATANODE_OPTS</span>"</span></span><br></pre></td></tr></table></figure>
+<h4 id="3-画CPU火焰图"><a href="#3-画CPU火焰图" class="headerlink" title="3. 画CPU火焰图"></a>3. 画CPU火焰图</h4><p>先把Brendan Gregg大神的FlameGraph脚本下载下来</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:brendangregg/FlameGraph.git</span><br><span class="line"><span class="built_in">cd</span> FlameGraph</span><br></pre></td></tr></table></figure>
+<p>执行HDFS的TestDFSIO压测下，让DataNode有点动静</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop jar <span class="variable">$&#123;HADOOP_HOME&#125;</span>/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result</span><br></pre></td></tr></table></figure>
+<p>然后开启perf分析下DataNode，这里<code>11691</code>是DataNode的进程ID。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf record <span class="_">-a</span> -g -p 11691</span><br></pre></td></tr></table></figure>
+<p>等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，这时候用<code>perf report --stdio</code>已经可以直接查看结果。但是如果需要查看火焰图的话，需要再对perf.data做下转换。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf script | ./stackcollapse-perf.pl | ./flamegraph.pl &gt;perf.svg</span><br></pre></td></tr></table></figure>
+<p>执行上面的命令后，把perf.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。实际上生成的是svg，所以鼠标移上去左下角会显示完整的Java方法名。但由于下图只是截屏，所以没法体验到这效果<br><img src="/images/perf_flame_testdfsio.png" alt="TestDFSIO火焰图"></p>
+<h4 id="4-画IO热力图"><a href="#4-画IO热力图" class="headerlink" title="4. 画IO热力图"></a>4. 画IO热力图</h4><p>步骤很类似，把Brendan Gregg大神的HeatMap脚本下载下来</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:brendangregg/HeatMap.git</span><br><span class="line"><span class="built_in">cd</span> HeatMap</span><br></pre></td></tr></table></figure>
+<p>执行HDFS的TestDFSIO压测下，让DataNode有点动静</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop jar <span class="variable">$&#123;HADOOP_HOME&#125;</span>/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result</span><br></pre></td></tr></table></figure>
+<p>然后开启perf分析下DataNode磁盘IO事件，这里<code>block_rq_issu</code>是发出IO请求时的事件，<code>block_rq_complete</code>是IO请求处理结束时的事件，<code>11691</code>是DataNode的进程ID，会统计DataNode发出IO请求到操作系统处理完IO请求的时间。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf record <span class="_">-e</span> block:block_rq_issue <span class="_">-e</span> block:block_rq_complete <span class="_">-a</span></span><br></pre></td></tr></table></figure>
+<p>等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，执行如下命令生成IO热力图。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">perf script | awk <span class="string">'&#123; gsub(/:/, "") &#125; $5 ~ /issue/ &#123; ts[$6, $10] = $4 &#125; $5 ~ /complete/ &#123; if (l = ts[$6, $9]) &#123; printf "%.f %.f\n", $4 * 1000000, ($4 - l) * 1000000; ts[$6, $10] = 0 &#125; &#125;'</span> &gt; out.lat_us</span><br><span class="line">./trace2heatmap.pl --unitstime=us --unitslat=us --stepsec=40 --maxlat=100000 out.lat_us &gt; out.svg</span><br></pre></td></tr></table></figure>
+<p>执行上面的命令后，把out.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。横坐标是时间轴，单位由上面的<code>--stepsec</code>参数指定，纵坐标是IO操作的延迟时间，单位由上面的<code>--unitstime</code>参数指定，上限由<code>--maxlat</code>指定，由于TestDFSIO指定运行时间较短，所以perf搜集到的IO操作并不是那么多，如果运行的时间更长的话，生成的热力图会更加壮观。生成的是svg，所以鼠标移上去左下角会显示每个点的具体含义。但由于下图只是截屏，所以没法体验到这效果。<br><img src="/images/perf_heatmap_testdfsio.png" alt="TestDFSIO热力图"></p>
+<h4 id="5-结束"><a href="#5-结束" class="headerlink" title="5. 结束"></a>5. 结束</h4><p>perf是个很强大的工具，Brendan Gregg大神的这几个脚本可以让我们更直观地查看perf的分析结果。不过怎么结合这些分析结果改进程序的性能，还是需要对程序的代码足够了解才能有的放矢地进行改进。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/perf/">perf</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-04T16:00:01.000Z"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">May 5 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">Hadoop lzo找不到Native库解决方法</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Hadoop lzo相关的错误有两个，分别为：</p>
+<ol>
+<li>Could not load native gpl library</li>
+<li>native-lzo library not available<br>下面会分别说明</li>
+</ol>
+<h3 id="Could-not-load-native-gpl-library"><a href="#Could-not-load-native-gpl-library" class="headerlink" title="Could not load native gpl library"></a>Could not load native gpl library</h3><p>很多HBase用户在用BulkLoad从Hadoop往HBase导入数据的时候，会遇到如下情况。报hadoop lzo找不到gplcompression的错误。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ERROR lzo.GPLNativeCodeLoader: Could not load native gpl library</span><br><span class="line">java.lang.UnsatisfiedLinkError: no gplcompression in java.library.path</span><br><span class="line">    at java.lang.ClassLoader.loadLibrary(ClassLoader.java:1738)     </span><br><span class="line">    at java.lang.Runtime.loadLibrary0(Runtime.java:823)     </span><br><span class="line">    at java.lang.System.loadLibrary(System.java:1028)     </span><br><span class="line">    at com.Hadoop.compression.lzo.GPLNativeCodeLoader.&lt;clinit&gt;</span><br></pre></td></tr></table></figure>
+<p>这个错误是因为生成HFile的时候开启了LZO压缩，开启LZO压缩可以有效的减少HFile大小（压缩比平均20%），有效减少distcp传输时间。但由于云梯1的<code>java.library.path</code>路径下并不包含gplcompression这个Native库，所以若生成HFile时开启LZO，则会报如上错误。解决方法很简单，将<a href="/files/hadoop-lzo-0.4.20-mr1.jar">hadoop-lzo-0.4.20-mr1</a>（MapReduce 1编译版本）或<a href="/files/hadoop-lzo-0.4.20.jar">hadoop-lzo-0.4.20</a>（MapReduce 2编译版本）下载的jar包加入到<code>-libjars</code>参数重新执行即可。</p>
+<p>原因是hadoop-lzo的作者考虑到了上述情况，所以直接将gplcompression打包进了jar中。查看<code>hadoop-lzo-0.4.20-mr1.jar</code>可发现，<code>gplcompression</code>的Native库，都已经加入到jar包中的 <code>native/Linux-amd64-64/lib</code>下面</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$: jar -tf hadoop-lzo-0.4.20-mr1.jar |grep native</span><br><span class="line">native/</span><br><span class="line">native/Linux-amd64-64/</span><br><span class="line">native/Linux-amd64-64/lib/</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.a</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.la</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0.0.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so</span><br></pre></td></tr></table></figure>
+<p>hadoop-lzo的实现中会先将gplcompression的Native库从jar包中解压到临时地址，并load进该库。详细代码可参见作者托管在Github上的代码<a href="https://github.com/twitter/hadoop-lzo/blob/master/src/main/java/com/hadoop/compression/lzo/GPLNativeCodeLoader.java#L85" target="_blank" rel="external">GPLNativeCodeLoader#unpackBinaries</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// locate the binaries inside the jar</span></span><br><span class="line">String fileName = System.mapLibraryName(LIBRARY_NAME);</span><br><span class="line">String directory = getDirectoryLocation();</span><br><span class="line"><span class="comment">// use the current defining classloader to load the resource</span></span><br><span class="line">InputStream is = GPLNativeCodeLoader.class.getResourceAsStream(directory + <span class="string">"/"</span> + fileName);</span><br></pre></td></tr></table></figure>
+<h3 id="native-lzo-library-not-available"><a href="#native-lzo-library-not-available" class="headerlink" title="native-lzo library not available"></a>native-lzo library not available</h3><p>另一个与Hadoop lzo常见的错误是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.RuntimeException: native-lzo library not available</span><br></pre></td></tr></table></figure>
+<p>这个错误是执行你的写HDFS程序的机器没有安装<code>lzo-devel</code>，程序在<code>LD_LIBRARY_PATH</code>下找不到<code>liblzo2.so.2</code>导致的，在该机器上执行如下命令安装即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install lzo lzo-devel</span><br></pre></td></tr></table></figure>
+<p>或者直接到已安装lzo的机器上将<code>/usr/lib64/liblzo2.so.2</code>下到本地，然后代码中手动load即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.load(liblzo2.so.2的存放地址);</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/HBase/">HBase</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-02-11T10:56:54.000Z"><a href="/2014/02/11/jcgroup/">Feb 11 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/02/11/jcgroup/">jcgroup</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>#Cgroup on JVM</p>
+<p><a href="https://travis-ci.org/haosdent/jcgroup" target="_blank" rel="external"><img src="https://travis-ci.org/haosdent/jcgroup.png?branch=master" alt="Build Status"></a> <a href="https://coveralls.io/r/haosdent/jcgroup?branch=master" target="_blank" rel="external"><img src="https://coveralls.io/repos/haosdent/jcgroup/badge.png?branch=master" alt="Coverage Status"></a></p>
+<p>jcgroup is a cgroup wrapper on JVM. You could use this library to limit the CPU shares, Disk I/O speed, Network bandwidth and etc of a thread.</p>
+<h2 id="Subsystems"><a href="#Subsystems" class="headerlink" title="Subsystems"></a>Subsystems</h2><p>☑ blkio<br><br>☑ common<br><br>☑ cpu<br><br>☑ cpuacct<br><br>☑ cpuset<br><br>☑ devices<br><br>☑ freezer<br><br>☑ memory<br><br>☑ net_cls<br><br>☑ net_prio<br></p>
+<h2 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h2><blockquote>
+<p>This code snippet create two threads and set different cpu shares of them. One is 512 while another is 2048.</p>
+</blockquote>
+<p><img src="https://raw.github.com/haosdent/jcgroup/master/img/jcgroup_example_cpu.jpg" alt="jcgroup_example_cpu"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExampleTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger LOG = LoggerFactory.getLogger(ExampleTest.class);</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Admin admin;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group root;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group one;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group two;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@BeforeClass</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">setUpClass</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      admin = <span class="keyword">new</span> Admin(Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">      root = admin.getRootGroup();</span><br><span class="line">      one = admin.createGroup(<span class="string">"one"</span>, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">      two = admin.createGroup(<span class="string">"two"</span>, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Create cgroup Failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@AfterClass</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">tearDownClass</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      admin.umount();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Umount cgroup failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Test</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testCpu</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      one.getCpuset().setCpus(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      two.getCpuset().setCpus(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      one.getCpuset().setMems(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      two.getCpuset().setMems(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      one.getCpu().setShares(<span class="number">512</span>);</span><br><span class="line">      two.getCpu().setShares(<span class="number">2048</span>);</span><br><span class="line">      <span class="keyword">final</span> Group oneTmp = one;</span><br><span class="line">      <span class="keyword">final</span> Group twoTmp = two;</span><br><span class="line">      <span class="keyword">new</span> Thread()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">          <span class="keyword">int</span> id = Threads.getThreadId();</span><br><span class="line">          LOG.info(<span class="string">"Thread id:"</span> + id);</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            oneTmp.getCpu().addTask(id);</span><br><span class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">            assertTrue(<span class="keyword">false</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;.start();</span><br><span class="line">      <span class="keyword">new</span> Thread()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">          <span class="keyword">int</span> id = Threads.getThreadId();</span><br><span class="line">          LOG.info(<span class="string">"Thread id:"</span> + id);</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            twoTmp.getCpu().addTask(id);</span><br><span class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">            assertTrue(<span class="keyword">false</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;.start();</span><br><span class="line">      Thread.sleep(<span class="number">60000l</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Requirements"><a href="#Requirements" class="headerlink" title="Requirements"></a>Requirements</h2><ul>
+<li>Linux version (&gt;= 2.6.18)</li>
+</ul>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/java/">java</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-11-24T06:50:57.000Z"><a href="/2013/11/24/惊鸿一瞥之RocksDB/">Nov 24 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/11/24/惊鸿一瞥之RocksDB/">惊鸿一瞥之RocksDB</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h1 id="RocksDB"><a href="#RocksDB" class="headerlink" title="RocksDB"></a>RocksDB</h1><p>FB最近新开源了一个新的KV数据库。之前还没公布时挺传言说相比HBase如何如何，不过现在公开后实际看下来，其实是个单机的KV数据库，FB又重复造了一个看起来比LevelDB更快的轮子。仅从视频来看，相比LevelDB可以更充分的利用多核CPU和SSD。比方说像Compaction等操作相较LevelDB是以多线程的方式完成，也不乏像延时完成Value++这些操作的小trick。而像在Scan中加入Bloom过滤器这些我不确定是不是RocksDB的开发者从HBase中借鉴来的。虽然看起来感觉应该是比LevelDB有较大的性能提升，但我充分感觉到了这明显就是一个重复的轮子，无法感受到做这个东西有啥巨大的意义。估计FB的童鞋也是有KPI压力的吧，哈哈。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-11-24T05:56:32.000Z"><a href="/2013/11/24/Hadoop断电保护/">Nov 24 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/11/24/Hadoop断电保护/">Hadoop断电保护</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>断电保护的文章已投到InfoQ，欢迎移步阅读。<a href="http://www.infoq.com/cn/articles/large-data-processing-ensuring-data-not-lost-when-power-off" target="_blank" rel="external">链接</a></p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+  <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-09-09T17:31:33.000Z"><a href="/2013/09/10/Wasp上手实例/">Sep 10 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/09/10/Wasp上手实例/">Wasp上手实例</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Wasp是阿里开源的类似MegaStore和F1的分布式关系型数据库，本文将简要介绍如何快速部署Wasp及使用JDBC的方式连接和操作Wasp</p>
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>1.一个分布式部署的hbase集群，hbase已经启动</p>
+<p>2.编译代码的机器上已经安装好Maven和JDK6</p>
+<h3 id="编译代码"><a href="#编译代码" class="headerlink" title="编译代码"></a>编译代码</h3><p>1.使用如下命令从github克隆最新代码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/alibaba/wasp.git</span><br></pre></td></tr></table></figure>
+<p>2.进入wasp目录，并确保当前目录为JDK6</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> ~/workspace/java$: <span class="built_in">cd</span> wasp/</span><br><span class="line"> ~/workspace/java/wasp$: java -version</span><br><span class="line">java version <span class="string">"1.6.0_51"</span></span><br><span class="line">Java(TM) SE Runtime Environment (build 1.6.0_51-b11-457-11M4509)</span><br><span class="line">Java HotSpot(TM) 64-Bit Server VM (build 20.51-b01-457, mixed mode)</span><br></pre></td></tr></table></figure>
+<p>3.执行如下命令进行编译</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn -DskipTests assembly:assembly</span><br></pre></td></tr></table></figure>
+<p>4.编译完成后，<code>target</code>目录下的<code>wasp-0.10-bin.tar.gz</code>就是我们稍后将会用的压缩包</p>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>1.将<code>wasp-0.10-bin.tar.gz</code>上传到服务器指定的目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/workspace/java/wasp$: scp target/wasp-0.10-bin.tar.gz haosong.hhs@10.232.98.96:develop/soft/</span><br></pre></td></tr></table></figure>
+<p>2.登录服务器后，解压<code>wasp-0.10-bin.tar.gz</code>并进入解压后的目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: tar -zxvf wasp-0.10-bin.tar.gz</span><br></pre></td></tr></table></figure>
+<p>3.编辑<code>conf</code>目录下的<code>wasp-site.xml</code>，加上如下配置：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0"?&gt;</span><br><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;</span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp在zk中的父目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>zookeeper.wasp.znode.parent<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/wasp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp使用的zk地址，该地址必须是依赖的存储引擎hbase使用的zk地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>10.232.98.94,10.232.98.72,10.232.98.40<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp使用的zk端口号 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.zookeeper.property.clientPort<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>40060<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase在zk中的父目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>zookeeper.znode.parent<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/hbase-cdh4<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase使用的zk地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>10.232.98.94,10.232.98.72,10.232.98.40<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase使用的zk端口号 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.clientPort<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>40060<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置系统为分布式模式 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- master节点的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.master.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45050<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- master的web页面的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.master.info.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45051<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 数据服务节点的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.fserver.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45052<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 数据服务节点的web页面的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.fserver.info.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45053<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>4.编辑<code>conf</code>目录下的<code>wasp-env.sh</code>，禁用Wasp自动启动zookeeper集群：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> WASP_MANAGES_ZK=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>5.编辑<code>conf</code>目录下的<code>fservers</code>，加上fservers的地址，需确保已经配置fservers的免认证登录<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">10.232.98.60</span><br><span class="line">10.232.98.61</span><br><span class="line">10.232.98.62</span><br></pre></td></tr></table></figure></p>
+<h3 id="部署及启动"><a href="#部署及启动" class="headerlink" title="部署及启动"></a>部署及启动</h3><p>1.完成配置后，将<code>wasp-0.10</code>同步到所有fservers服务器上，注意保持一样访问结构</p>
+<p>2.使用如下命令启动Wasp</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: ./wasp-0.10/bin/start-wasp.sh</span><br></pre></td></tr></table></figure>
+<p>3.启动Wasp Shell，使用<code>status</code>命令检查是否成功启动，若出现如下的提示信息，则表明已成功启动Wasp：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: ./wasp-0.10/bin/wasp shell</span><br><span class="line">wasp(main):061:0&gt; status</span><br><span class="line">3 servers, 0 dead, 0.3333 average load</span><br></pre></td></tr></table></figure>
+<h3 id="使用JDBC操作数据库"><a href="#使用JDBC操作数据库" class="headerlink" title="使用JDBC操作数据库"></a>使用JDBC操作数据库</h3><p>经过前面那么多的准备步骤后，我们现在终于可以使用Wasp来存储我们的数据了。而Wasp提供了我们非常熟悉的JDBC连接方式，下面将介绍如何以JDBC连接和操作Wasp。</p>
+<p>1.在代码中需配置Wasp的zookeeper相关信息<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line"><span class="comment">/*</span><br><span class="line"> * 配置wasp对应的zookeeper属性</span><br><span class="line"> */</span></span><br><span class="line">props.setProperty(<span class="string">"wasp.zookeeper.quorum"</span>,</span><br><span class="line">    <span class="string">"10.232.98.94,10.232.98.72,10.232.98.40"</span>);</span><br><span class="line">props.setProperty(<span class="string">"wasp.zookeeper.property.clientPort"</span>, <span class="string">"40060"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>2.载入Wasp的JDBC驱动<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 载入wasp的jdbc和初始化相关对象</span><br><span class="line"> */</span></span><br><span class="line">com.alibaba.wasp.jdbc.Driver.load();</span><br><span class="line">Connection conn = DriverManager.getConnection(<span class="string">"jdbc:wasp:"</span>, props);</span><br><span class="line">Statement stat = conn.createStatement();</span><br></pre></td></tr></table></figure></p>
+<p>OK，下面我们就可以通过直接执行SQL语句来操作Wasp，比如</p>
+<p>1.创建表<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 创建user表，主键为user_id</span><br><span class="line"> */</span></span><br><span class="line">String sql = <span class="string">"CREATE TABLE user &#123;REQUIRED INT64 user_id;"</span></span><br><span class="line">           + <span class="string">" REQUIRED STRING name; &#125;"</span></span><br><span class="line">           + <span class="string">" PRIMARY KEY(user_id),"</span></span><br><span class="line">           + <span class="string">" ENTITY GROUP ROOT,"</span></span><br><span class="line">           + <span class="string">" ENTITY GROUP KEY(user_id);"</span>;</span><br><span class="line">stat.execute(sql);</span><br></pre></td></tr></table></figure></p>
+<p>2.插入记录<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 插入id为1，name为'test'的记录</span><br><span class="line"> */</span></span><br><span class="line">sql = <span class="string">"INSERT INTO user(user_id,name) values(1,'test');"</span>;</span><br><span class="line">stat.execute(sql);</span><br></pre></td></tr></table></figure></p>
+<p>3.查询记录<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 查询user_id为1的记录信息</span><br><span class="line"> * 最终控制台结果为：1,test</span><br><span class="line"> */</span></span><br><span class="line">sql = <span class="string">"SELECT * FROM user WHERE user_id=1;"</span>;</span><br><span class="line">ResultSet rs = stat.executeQuery(sql);</span><br><span class="line"><span class="keyword">for</span> (; rs.next(); ) &#123;</span><br><span class="line">  System.out.println(rs.getString(<span class="string">"user_id"</span>) + <span class="string">","</span> + rs.getString(<span class="string">"name"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>整个完整的代码为：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.haosdent.test;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.sql.Connection;</span><br><span class="line"><span class="keyword">import</span> java.sql.DriverManager;</span><br><span class="line"><span class="keyword">import</span> java.sql.ResultSet;</span><br><span class="line"><span class="keyword">import</span> java.sql.SQLException;</span><br><span class="line"><span class="keyword">import</span> java.sql.Statement;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WaspExample</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line">    <span class="comment">/*</span><br><span class="line">     * 配置wasp对应的zookeeper属性</span><br><span class="line">     */</span></span><br><span class="line">    props.setProperty(<span class="string">"wasp.zookeeper.quorum"</span>, <span class="string">"10.232.98.94,10.232.98.72,10.232.98.40"</span>);</span><br><span class="line">    props.setProperty(<span class="string">"wasp.zookeeper.property.clientPort"</span>, <span class="string">"40060"</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/*</span><br><span class="line">     * 载入wasp的jdbc</span><br><span class="line">     */</span></span><br><span class="line">    com.alibaba.wasp.jdbc.Driver.load();</span><br><span class="line">    Connection conn = <span class="keyword">null</span>;</span><br><span class="line">    Statement stat = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      conn = DriverManager.getConnection(<span class="string">"jdbc:wasp:"</span>, props);</span><br><span class="line">      stat = conn.createStatement();</span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 创建user表，主键为user_id</span><br><span class="line">       */</span></span><br><span class="line">      String sql = <span class="string">"CREATE TABLE user &#123;REQUIRED INT64 user_id;"</span></span><br><span class="line">                 + <span class="string">" REQUIRED STRING name; &#125;"</span></span><br><span class="line">                 + <span class="string">" PRIMARY KEY(user_id),"</span></span><br><span class="line">                 + <span class="string">" ENTITY GROUP ROOT,"</span></span><br><span class="line">                 + <span class="string">" ENTITY GROUP KEY(user_id);"</span>;</span><br><span class="line">      stat.execute(sql);</span><br><span class="line">      Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">      </span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 插入id为1，name为'test'的记录</span><br><span class="line">       */</span></span><br><span class="line">      sql = <span class="string">"INSERT INTO user(user_id,name) values(1,'test');"</span>;</span><br><span class="line">      stat.execute(sql);</span><br><span class="line">      </span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 查询user_id为1的记录信息</span><br><span class="line">       * 控制台结果：1,test</span><br><span class="line">       */</span></span><br><span class="line">      sql = <span class="string">"SELECT * FROM user WHERE user_id=1;"</span>;</span><br><span class="line">      ResultSet rs = stat.executeQuery(sql);</span><br><span class="line">      <span class="keyword">for</span> (; rs.next(); ) &#123;</span><br><span class="line">        System.out.println(rs.getString(<span class="string">"user_id"</span>) + <span class="string">","</span> + rs.getString(<span class="string">"name"</span>));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        stat.close();</span><br><span class="line">        conn.close();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>写好代码导出为jar包后，使用如下命令运行程序，运行时需将之前解压<code>wasp-0.10-bin.tar.gz</code>中<code>lib</code>目录加到CLASSPATH中：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp /tmp/wasp-0.10/lib/*:/tmp/WaspExample.jar me.haosdent.test.WaspExample</span><br></pre></td></tr></table></figure></p>
+<p>控制台结果如下，说明已经成功插入记录到Wasp并查询到相关数据：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1,test</span><br></pre></td></tr></table></figure></p>
+<p>而登录上服务器后，进入Wasp Shell，也可以查询到之前创建的user表信息<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 显示所有表</span></span><br><span class="line">wasp(main):062:0&gt; show_tables</span><br><span class="line">TABLE</span><br><span class="line">user</span><br><span class="line">1 row(s) <span class="keyword">in</span> 0.0130 seconds</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看user表的结构</span></span><br><span class="line">wasp(main):065:0&gt; describe_table <span class="string">'user'</span></span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">| Field                     | Type     | REQUIRED | Key | EGK |</span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">| user_id                   | INT64    | REQUIRED | PRI | EGK |</span><br><span class="line">| name                      | STRING   | REQUIRED |     |     |</span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">1 row(s) <span class="keyword">in</span> 0.0050 seconds</span><br></pre></td></tr></table></figure></p>
+<p>上手示例到这里已经结束，关于Wasp更多有趣的功能你可以从此wiki的其他文章中更进一步了解。若操作过程中有任何疑问或需求，欢迎到此处提<a href="https://github.com/alibaba/wasp/issues?state=open" target="_blank" rel="external">issue</a>。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+
+
+<nav id="pagination">
+  
+  
+    <a href="/page/2/" class="alignright next">Nächste Seite</a>
+  
+  <div class="clearfix"></div>
+</nav></div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>

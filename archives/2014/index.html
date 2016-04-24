@@ -1,0 +1,537 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>archive_b | haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/archives/2014/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper">
+<h2 class="archive-title">2014</h2>
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-24T05:50:13.000Z"><a href="/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/">May 24 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/">阿里云ECS上Hadoop HDFS的简单性能测试</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>在阿里云的ECS上部署了Hadoop，做了下HDFS的简单性能测试，记录如下，性能差距比较大。</p>
+<p>使用的阿里云ECS配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Region</td>
+<td>青岛</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>1核</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>512MB</td>
+</tr>
+<tr>
+<td>实例规格</td>
+<td>ecs.t1.xsmall</td>
+</tr>
+<tr>
+<td>系统盘</td>
+<td>20G</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>CentOS 6.3 64位</td>
+</tr>
+</tbody>
+</table>
+<p>Hadoop HDFS的配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HDFS版本</td>
+<td>社区2.4.0</td>
+</tr>
+<tr>
+<td>集群ECS台数</td>
+<td>6台</td>
+</tr>
+<tr>
+<td>JVM堆大小</td>
+<td>-Xmx400m</td>
+</tr>
+<tr>
+<td>NameNode</td>
+<td>2台ECS</td>
+</tr>
+<tr>
+<td>JournalNode</td>
+<td>1台ECS</td>
+</tr>
+<tr>
+<td>DataNode</td>
+<td>3台ECS</td>
+</tr>
+</tbody>
+</table>
+<p>使用了TestDFSIO在同一个网段的另外一台独立的ECS上做多线程的简单写入和读取速率测试，结果如下（3次测试的平均结果）：</p>
+<table>
+<thead>
+<tr>
+<th>测试类型</th>
+<th>并发数</th>
+<th>每个线程的写入大小</th>
+<th>速率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>写入</td>
+<td>10</td>
+<td>1GB</td>
+<td>24.01MB/s</td>
+</tr>
+<tr>
+<td>读取</td>
+<td>10</td>
+<td>1GB</td>
+<td>40.55MB/s</td>
+</tr>
+</tbody>
+</table>
+<p>虽然是最低配置，但由于机器上没有跑任何额外程序，Hadoop也只启动了HDFS，且测试程序是在另外一台ECS跑，所以正常应该是能跑慢网卡。</p>
+<p>由于DataNode数据为3，所以这个速率可以近似认为是单台DataNode写云磁盘的速率，瓶颈应该还是在云磁盘。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/ECS/">ECS</a>, <a href="/tags/aliyun/">aliyun</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-10T12:20:58.000Z"><a href="/2014/05/10/用perf给Hadoop画CPU火焰图和IO热力图/">May 10 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/10/用perf给Hadoop画CPU火焰图和IO热力图/">用perf给Hadoop画CPU火焰图和IO热力图</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>perf自带的分析结果查看方式主要是tui，这种查看方式是在终端下进行查看。Brendan Gregg大神写了几个Perl脚本，可以将perf的结果转换成更直观的火焰图和热力图，本文以Hadoop的HDFS为例介绍如何以更直观的方式查看perf的分析结果。</p>
+<h4 id="1-安装aliperf和taobao-jdk"><a href="#1-安装aliperf和taobao-jdk" class="headerlink" title="1. 安装aliperf和taobao-jdk"></a>1. 安装aliperf和taobao-jdk</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install aliperf -btest -y</span><br><span class="line">sudo yum install taobao-jdk -y</span><br></pre></td></tr></table></figure>
+<p>因为要分析的是Java程序，只有aliperf和taobao-jdk配合才能解析出JIT符号，不然查看perf的分析结果时，看不到Java代码中对应的方法和类。</p>
+<h4 id="2-修改JVM启动参数"><a href="#2-修改JVM启动参数" class="headerlink" title="2. 修改JVM启动参数"></a>2. 修改JVM启动参数</h4><p>本文用到的Hadoop是社区的trunk版本，要在<code>${HADOOP_HOME}/etc/hadoop-env.sh</code>修改<code>${HADOOP_NAMENODE_OPTS}</code>和<code>${HADOOP_DATANODE_OPTS}</code>这两个变量，让JVM启动时带上<code>libjvmti_perf.so</code>这个插件，如下所示，修改完后重启运行perf的机器上的NameNode和DataNode。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> HADOOP_NAMENODE_OPTS=<span class="string">"-Dhadoop.security.logger=<span class="variable">$&#123;HADOOP_SECURITY_LOGGER:-INFO,RFAS&#125;</span> -Dhdfs.audit.logger=<span class="variable">$&#123;HDFS_AUDIT_LOGGER:-INFO,NullAppender&#125;</span> -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile <span class="variable">$HADOOP_NAMENODE_OPTS</span>"</span></span><br><span class="line"><span class="built_in">export</span> HADOOP_DATANODE_OPTS=<span class="string">"-Dhadoop.security.logger=ERROR,RFAS -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile <span class="variable">$HADOOP_DATANODE_OPTS</span>"</span></span><br></pre></td></tr></table></figure>
+<h4 id="3-画CPU火焰图"><a href="#3-画CPU火焰图" class="headerlink" title="3. 画CPU火焰图"></a>3. 画CPU火焰图</h4><p>先把Brendan Gregg大神的FlameGraph脚本下载下来</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:brendangregg/FlameGraph.git</span><br><span class="line"><span class="built_in">cd</span> FlameGraph</span><br></pre></td></tr></table></figure>
+<p>执行HDFS的TestDFSIO压测下，让DataNode有点动静</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop jar <span class="variable">$&#123;HADOOP_HOME&#125;</span>/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result</span><br></pre></td></tr></table></figure>
+<p>然后开启perf分析下DataNode，这里<code>11691</code>是DataNode的进程ID。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf record <span class="_">-a</span> -g -p 11691</span><br></pre></td></tr></table></figure>
+<p>等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，这时候用<code>perf report --stdio</code>已经可以直接查看结果。但是如果需要查看火焰图的话，需要再对perf.data做下转换。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf script | ./stackcollapse-perf.pl | ./flamegraph.pl &gt;perf.svg</span><br></pre></td></tr></table></figure>
+<p>执行上面的命令后，把perf.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。实际上生成的是svg，所以鼠标移上去左下角会显示完整的Java方法名。但由于下图只是截屏，所以没法体验到这效果<br><img src="/images/perf_flame_testdfsio.png" alt="TestDFSIO火焰图"></p>
+<h4 id="4-画IO热力图"><a href="#4-画IO热力图" class="headerlink" title="4. 画IO热力图"></a>4. 画IO热力图</h4><p>步骤很类似，把Brendan Gregg大神的HeatMap脚本下载下来</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:brendangregg/HeatMap.git</span><br><span class="line"><span class="built_in">cd</span> HeatMap</span><br></pre></td></tr></table></figure>
+<p>执行HDFS的TestDFSIO压测下，让DataNode有点动静</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop jar <span class="variable">$&#123;HADOOP_HOME&#125;</span>/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result</span><br></pre></td></tr></table></figure>
+<p>然后开启perf分析下DataNode磁盘IO事件，这里<code>block_rq_issu</code>是发出IO请求时的事件，<code>block_rq_complete</code>是IO请求处理结束时的事件，<code>11691</code>是DataNode的进程ID，会统计DataNode发出IO请求到操作系统处理完IO请求的时间。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">perf record <span class="_">-e</span> block:block_rq_issue <span class="_">-e</span> block:block_rq_complete <span class="_">-a</span></span><br></pre></td></tr></table></figure>
+<p>等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，执行如下命令生成IO热力图。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">perf script | awk <span class="string">'&#123; gsub(/:/, "") &#125; $5 ~ /issue/ &#123; ts[$6, $10] = $4 &#125; $5 ~ /complete/ &#123; if (l = ts[$6, $9]) &#123; printf "%.f %.f\n", $4 * 1000000, ($4 - l) * 1000000; ts[$6, $10] = 0 &#125; &#125;'</span> &gt; out.lat_us</span><br><span class="line">./trace2heatmap.pl --unitstime=us --unitslat=us --stepsec=40 --maxlat=100000 out.lat_us &gt; out.svg</span><br></pre></td></tr></table></figure>
+<p>执行上面的命令后，把out.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。横坐标是时间轴，单位由上面的<code>--stepsec</code>参数指定，纵坐标是IO操作的延迟时间，单位由上面的<code>--unitstime</code>参数指定，上限由<code>--maxlat</code>指定，由于TestDFSIO指定运行时间较短，所以perf搜集到的IO操作并不是那么多，如果运行的时间更长的话，生成的热力图会更加壮观。生成的是svg，所以鼠标移上去左下角会显示每个点的具体含义。但由于下图只是截屏，所以没法体验到这效果。<br><img src="/images/perf_heatmap_testdfsio.png" alt="TestDFSIO热力图"></p>
+<h4 id="5-结束"><a href="#5-结束" class="headerlink" title="5. 结束"></a>5. 结束</h4><p>perf是个很强大的工具，Brendan Gregg大神的这几个脚本可以让我们更直观地查看perf的分析结果。不过怎么结合这些分析结果改进程序的性能，还是需要对程序的代码足够了解才能有的放矢地进行改进。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/perf/">perf</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-04T16:00:01.000Z"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">May 5 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">Hadoop lzo找不到Native库解决方法</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Hadoop lzo相关的错误有两个，分别为：</p>
+<ol>
+<li>Could not load native gpl library</li>
+<li>native-lzo library not available<br>下面会分别说明</li>
+</ol>
+<h3 id="Could-not-load-native-gpl-library"><a href="#Could-not-load-native-gpl-library" class="headerlink" title="Could not load native gpl library"></a>Could not load native gpl library</h3><p>很多HBase用户在用BulkLoad从Hadoop往HBase导入数据的时候，会遇到如下情况。报hadoop lzo找不到gplcompression的错误。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ERROR lzo.GPLNativeCodeLoader: Could not load native gpl library</span><br><span class="line">java.lang.UnsatisfiedLinkError: no gplcompression in java.library.path</span><br><span class="line">    at java.lang.ClassLoader.loadLibrary(ClassLoader.java:1738)     </span><br><span class="line">    at java.lang.Runtime.loadLibrary0(Runtime.java:823)     </span><br><span class="line">    at java.lang.System.loadLibrary(System.java:1028)     </span><br><span class="line">    at com.Hadoop.compression.lzo.GPLNativeCodeLoader.&lt;clinit&gt;</span><br></pre></td></tr></table></figure>
+<p>这个错误是因为生成HFile的时候开启了LZO压缩，开启LZO压缩可以有效的减少HFile大小（压缩比平均20%），有效减少distcp传输时间。但由于云梯1的<code>java.library.path</code>路径下并不包含gplcompression这个Native库，所以若生成HFile时开启LZO，则会报如上错误。解决方法很简单，将<a href="/files/hadoop-lzo-0.4.20-mr1.jar">hadoop-lzo-0.4.20-mr1</a>（MapReduce 1编译版本）或<a href="/files/hadoop-lzo-0.4.20.jar">hadoop-lzo-0.4.20</a>（MapReduce 2编译版本）下载的jar包加入到<code>-libjars</code>参数重新执行即可。</p>
+<p>原因是hadoop-lzo的作者考虑到了上述情况，所以直接将gplcompression打包进了jar中。查看<code>hadoop-lzo-0.4.20-mr1.jar</code>可发现，<code>gplcompression</code>的Native库，都已经加入到jar包中的 <code>native/Linux-amd64-64/lib</code>下面</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$: jar -tf hadoop-lzo-0.4.20-mr1.jar |grep native</span><br><span class="line">native/</span><br><span class="line">native/Linux-amd64-64/</span><br><span class="line">native/Linux-amd64-64/lib/</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.a</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.la</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0.0.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so</span><br></pre></td></tr></table></figure>
+<p>hadoop-lzo的实现中会先将gplcompression的Native库从jar包中解压到临时地址，并load进该库。详细代码可参见作者托管在Github上的代码<a href="https://github.com/twitter/hadoop-lzo/blob/master/src/main/java/com/hadoop/compression/lzo/GPLNativeCodeLoader.java#L85" target="_blank" rel="external">GPLNativeCodeLoader#unpackBinaries</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// locate the binaries inside the jar</span></span><br><span class="line">String fileName = System.mapLibraryName(LIBRARY_NAME);</span><br><span class="line">String directory = getDirectoryLocation();</span><br><span class="line"><span class="comment">// use the current defining classloader to load the resource</span></span><br><span class="line">InputStream is = GPLNativeCodeLoader.class.getResourceAsStream(directory + <span class="string">"/"</span> + fileName);</span><br></pre></td></tr></table></figure>
+<h3 id="native-lzo-library-not-available"><a href="#native-lzo-library-not-available" class="headerlink" title="native-lzo library not available"></a>native-lzo library not available</h3><p>另一个与Hadoop lzo常见的错误是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.RuntimeException: native-lzo library not available</span><br></pre></td></tr></table></figure>
+<p>这个错误是执行你的写HDFS程序的机器没有安装<code>lzo-devel</code>，程序在<code>LD_LIBRARY_PATH</code>下找不到<code>liblzo2.so.2</code>导致的，在该机器上执行如下命令安装即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install lzo lzo-devel</span><br></pre></td></tr></table></figure>
+<p>或者直接到已安装lzo的机器上将<code>/usr/lib64/liblzo2.so.2</code>下到本地，然后代码中手动load即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.load(liblzo2.so.2的存放地址);</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/HBase/">HBase</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-02-11T10:56:54.000Z"><a href="/2014/02/11/jcgroup/">Feb 11 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/02/11/jcgroup/">jcgroup</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>#Cgroup on JVM</p>
+<p><a href="https://travis-ci.org/haosdent/jcgroup" target="_blank" rel="external"><img src="https://travis-ci.org/haosdent/jcgroup.png?branch=master" alt="Build Status"></a> <a href="https://coveralls.io/r/haosdent/jcgroup?branch=master" target="_blank" rel="external"><img src="https://coveralls.io/repos/haosdent/jcgroup/badge.png?branch=master" alt="Coverage Status"></a></p>
+<p>jcgroup is a cgroup wrapper on JVM. You could use this library to limit the CPU shares, Disk I/O speed, Network bandwidth and etc of a thread.</p>
+<h2 id="Subsystems"><a href="#Subsystems" class="headerlink" title="Subsystems"></a>Subsystems</h2><p>☑ blkio<br><br>☑ common<br><br>☑ cpu<br><br>☑ cpuacct<br><br>☑ cpuset<br><br>☑ devices<br><br>☑ freezer<br><br>☑ memory<br><br>☑ net_cls<br><br>☑ net_prio<br></p>
+<h2 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h2><blockquote>
+<p>This code snippet create two threads and set different cpu shares of them. One is 512 while another is 2048.</p>
+</blockquote>
+<p><img src="https://raw.github.com/haosdent/jcgroup/master/img/jcgroup_example_cpu.jpg" alt="jcgroup_example_cpu"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExampleTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger LOG = LoggerFactory.getLogger(ExampleTest.class);</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Admin admin;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group root;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group one;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Group two;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@BeforeClass</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">setUpClass</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      admin = <span class="keyword">new</span> Admin(Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">      root = admin.getRootGroup();</span><br><span class="line">      one = admin.createGroup(<span class="string">"one"</span>, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">      two = admin.createGroup(<span class="string">"two"</span>, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Create cgroup Failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@AfterClass</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">tearDownClass</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      admin.umount();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Umount cgroup failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Test</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testCpu</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      one.getCpuset().setCpus(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      two.getCpuset().setCpus(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      one.getCpuset().setMems(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      two.getCpuset().setMems(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">0</span>&#125;);</span><br><span class="line">      one.getCpu().setShares(<span class="number">512</span>);</span><br><span class="line">      two.getCpu().setShares(<span class="number">2048</span>);</span><br><span class="line">      <span class="keyword">final</span> Group oneTmp = one;</span><br><span class="line">      <span class="keyword">final</span> Group twoTmp = two;</span><br><span class="line">      <span class="keyword">new</span> Thread()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">          <span class="keyword">int</span> id = Threads.getThreadId();</span><br><span class="line">          LOG.info(<span class="string">"Thread id:"</span> + id);</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            oneTmp.getCpu().addTask(id);</span><br><span class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">            assertTrue(<span class="keyword">false</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;.start();</span><br><span class="line">      <span class="keyword">new</span> Thread()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">          <span class="keyword">int</span> id = Threads.getThreadId();</span><br><span class="line">          LOG.info(<span class="string">"Thread id:"</span> + id);</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            twoTmp.getCpu().addTask(id);</span><br><span class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">            assertTrue(<span class="keyword">false</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;.start();</span><br><span class="line">      Thread.sleep(<span class="number">60000l</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"Test cpu failed."</span>, e);</span><br><span class="line">      assertTrue(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Requirements"><a href="#Requirements" class="headerlink" title="Requirements"></a>Requirements</h2><ul>
+<li>Linux version (&gt;= 2.6.18)</li>
+</ul>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/java/">java</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+
+  <nav id="pagination">
+  
+  
+  <div class="clearfix"></div>
+</nav>
+</div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>

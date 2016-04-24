@@ -1,0 +1,328 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>阿里云ECS上Hadoop HDFS的简单性能测试 | haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="阿里云ECS上Hadoop HDFS的简单性能测试"/>
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-24T05:50:13.000Z"><a href="/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/">May 24 2014</a></time>
+      
+      
+  
+    <h1 class="title">阿里云ECS上Hadoop HDFS的简单性能测试</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>在阿里云的ECS上部署了Hadoop，做了下HDFS的简单性能测试，记录如下，性能差距比较大。</p>
+<p>使用的阿里云ECS配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Region</td>
+<td>青岛</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>1核</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>512MB</td>
+</tr>
+<tr>
+<td>实例规格</td>
+<td>ecs.t1.xsmall</td>
+</tr>
+<tr>
+<td>系统盘</td>
+<td>20G</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>CentOS 6.3 64位</td>
+</tr>
+</tbody>
+</table>
+<p>Hadoop HDFS的配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HDFS版本</td>
+<td>社区2.4.0</td>
+</tr>
+<tr>
+<td>集群ECS台数</td>
+<td>6台</td>
+</tr>
+<tr>
+<td>JVM堆大小</td>
+<td>-Xmx400m</td>
+</tr>
+<tr>
+<td>NameNode</td>
+<td>2台ECS</td>
+</tr>
+<tr>
+<td>JournalNode</td>
+<td>1台ECS</td>
+</tr>
+<tr>
+<td>DataNode</td>
+<td>3台ECS</td>
+</tr>
+</tbody>
+</table>
+<p>使用了TestDFSIO在同一个网段的另外一台独立的ECS上做多线程的简单写入和读取速率测试，结果如下（3次测试的平均结果）：</p>
+<table>
+<thead>
+<tr>
+<th>测试类型</th>
+<th>并发数</th>
+<th>每个线程的写入大小</th>
+<th>速率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>写入</td>
+<td>10</td>
+<td>1GB</td>
+<td>24.01MB/s</td>
+</tr>
+<tr>
+<td>读取</td>
+<td>10</td>
+<td>1GB</td>
+<td>40.55MB/s</td>
+</tr>
+</tbody>
+</table>
+<p>虽然是最低配置，但由于机器上没有跑任何额外程序，Hadoop也只启动了HDFS，且测试程序是在另外一台ECS跑，所以正常应该是能跑慢网卡。</p>
+<p>由于DataNode数据为3，所以这个速率可以近似认为是单台DataNode写云磁盘的速率，瓶颈应该还是在云磁盘。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+<!-- Duoshuo Comment BEGIN -->
+	<div class="ds-thread"></div>
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"haosdent"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->
+</section>
+
+
+</div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>

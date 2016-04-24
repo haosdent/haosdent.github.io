@@ -1,0 +1,282 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>mesos | haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/tags/mesos/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper">
+<h2 class="archive-title tag">mesos</h2>
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2016-04-24T09:22:41.000Z"><a href="/2016/04/24/mesos-on-arm/">Apr 24 2016</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2016/04/24/mesos-on-arm/">Mesos on Raspberry Pi</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>At this Friday, I saw a <a href="http://search-hadoop.com/m/0Vlr6TCgPiZz7Ja" target="_blank" rel="external">email</a> mentioned compile Mesos for Raspberry Pi.<br>It is a bit interesting and attracting me, it reminds me the happy time about playing Raspberry Pi when I still was a student two years ago.<br>Now Raspberry Pi is more cheaper over that time (<a href="https://www.adafruit.com/products/2885" target="_blank" rel="external">Raspberry Pi Zero ID: 2885 - $5.00</a>).</p>
+<p>To make Mesos compiled for Raspberry Pi successfully, we have three possible approaches:</p>
+<ol>
+<li>Compile Mesos on Raspberry Pi directly.</li>
+<li>Use cross compiling toolchains to compile Mesos for Raspberry Pi in ARM.</li>
+<li>Compile Mesos on Raspberry Pi virtual machine.</li>
+</ol>
+<p>For first approaches, there are a lot of header files in Mesos <code>stout</code> depenency. This requires huge memory when compiling Mesos and make it impossible to compile Mesos on current Raspberry Pi because of lack of memory.</p>
+<p>For second approaches, it should works theoretically. But Mesos would check the dependent libraries by compiling and running it during configure stage. This mean we need remove those checks in <code>configure</code> file manually. After I removed those checks, I found I fall into another trap: dependencies loops. The minimize dependent libraries for Mesos are <code>zlib</code>, <code>apr</code>, <code>apr-util</code>, <code>subversion</code>. I need to cross compiling and perpare them for Mesos firstly. But I blocked by cross compiling <code>subversion</code> eventually. I found need to solve its dependencies, its dependencies dependencies, its dependencies dependencies dependencies and so on. Seems the only remain possible way is to compile Mesos on Raspberry Pi virtual machine.</p>
+<p><code>qemu-arm</code> could simulate the Raspberry Pi architecture in x86 machine. I found a related <a href="https://github.com/vagrant2use/raspberry" target="_blank" rel="external">vagrant file</a> in github which make it easiler to set up the Raspberry Pi develop environment. However, it has already been out of maintain over 3 years. The debian version it used (Wheezy) is not new enough to compile Mesos as well. So I create a docker image <a href="https://hub.docker.com/r/haosdent/raspberry/" target="_blank" rel="external">haosdent/raspberry</a> based on the newest Raspberry Pi operate system(Jessie) according to its puppet files.</p>
+<p>By this docker image, we could start to compile Mesos for Raspberry Pi.</p>
+<ol>
+<li>Launch the Raspberry Pi Development Environment.</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -i -t --net=host --volume=`<span class="built_in">pwd</span>`/mesos:/root/mesos haosdent/raspberry /bin/bash</span><br></pre></td></tr></table></figure>
+<p>At above command, I mount my local Mesos code into docker container. Keep in mind here, we have to use the master branch of Mesos because of the bundle zookeeper package has updated in the master branch recently. Otherwise we would fail when compiling zookeeper on Raspberry Pi if use the old versions of Mesos.</p>
+<p>Then we use <code>sb2 -eF</code> to enter the virtual machine of Raspberry Pi. The shell prompt looks like</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[SB2 <span class="built_in">emulate</span> raspberry] root@raspberry ~ <span class="comment">#</span></span><br></pre></td></tr></table></figure>
+<p>if you enter the virtual machine of Raspberry Pi successfully.</p>
+<ol>
+<li>Patch <code>pivot_root</code> in Mesos Code</li>
+</ol>
+<p>Currenlty Mesos still would fail when compiling on Raspberry Pi because of the undefined of <code>__NR_pivot_root</code>. I take a look at @lyda’s <a href="https://github.com/lyda/mesos-on-arm/commit/ab4708e5661fc984b50db0e465d689e7b7ba76ef" target="_blank" rel="external">patch for this</a> before. However, it looks incorrect for me. So I modify it to</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">diff --git a/src/linux/fs.cpp b/src/linux/fs.cpp</span><br><span class="line">index 2087b4a..f29ce8a 100644</span><br><span class="line"><span class="comment">--- a/src/linux/fs.cpp</span></span><br><span class="line"><span class="comment">+++ b/src/linux/fs.cpp</span></span><br><span class="line">@@ -444,6 +444,16 @@ Try&lt;Nothing&gt; pivot_root(</span><br><span class="line">   // number for 'pivot_root' on the powerpc architecture, see</span><br><span class="line">   // https://w3challs.com/syscalls/?arch=powerpc_64</span><br><span class="line">   int ret = ::syscall(203, newRoot.c_str(), putOld.c_str());</span><br><span class="line"><span class="addition">+#elif __thumb__</span></span><br><span class="line"><span class="addition">+  // A workaround for arm thumb mode. The magic number '218' is the syscall</span></span><br><span class="line"><span class="addition">+  // number for 'pivot_root' on the arm thumb mode, see</span></span><br><span class="line"><span class="addition">+  // https://w3challs.com/syscalls/?arch=arm_thumb</span></span><br><span class="line"><span class="addition">+  int ret = ::syscall(218, newRoot.c_str(), putOld.c_str());</span></span><br><span class="line"><span class="addition">+#elif __arm__</span></span><br><span class="line"><span class="addition">+  // A workaround for arm. The magic number '9437402' is the syscall</span></span><br><span class="line"><span class="addition">+  // number for 'pivot_root' on the arm architecture, see</span></span><br><span class="line"><span class="addition">+  // https://w3challs.com/syscalls/?arch=arm_strong</span></span><br><span class="line"><span class="addition">+  int ret = ::syscall(9437402, newRoot.c_str(), putOld.c_str());</span></span><br><span class="line"> #else</span><br><span class="line"> #error "pivot_root is not available"</span><br><span class="line"> #endif</span><br></pre></td></tr></table></figure>
+<ol>
+<li>Following <a href="https://github.com/apache/mesos/blob/master/docs/getting-started.md#ubuntu-1404" target="_blank" rel="external">Mesos Getting Started Guide</a></li>
+</ol>
+<p>After finish above prepare works, we could use following commands to start to compile Mesos.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">apt-get install -y tar wget git</span><br><span class="line">apt-get install -y autoconf libtool</span><br><span class="line">apt-get -y install build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev libsasl2-modules maven libapr1-dev libsvn-dev</span><br><span class="line"><span class="built_in">cd</span> ~/mesos</span><br><span class="line">./bootstrap</span><br><span class="line">mkdir build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">../configure --disable-python --disable-java</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+<p>Noted that we disable java and python when compiling. I encounter some tricky problems when compiled with java in Raspberry Pi and not yet to<br>investigate.</p>
+<p>The stage would take quite a long time. It taked more than 8 hours in my slow machine. You could use <code>make -j &lt;number of cores&gt;</code> if your machine have more cpu cores.</p>
+<ol>
+<li>Launch Your First Mesos Task in the Raspberry Pi</li>
+</ol>
+<p>You should build it successfully if your finished above stages. And we could copy the whole packages to our real Raspberry Pi machine. However, some Mesos feautres don’t work in the Raspberry Pi correctly. For example, <code>replicated_log</code> and <code>cgroups</code>. So we need use following commands to start Mesos Master and Mesos Agent.</p>
+<p>4.1 Start Mesos Agent</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-master.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --registry=<span class="keyword">in</span>_memory</span><br></pre></td></tr></table></figure>
+<p>4.2 Start Mesos Agent</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix</span><br></pre></td></tr></table></figure>
+<p>After starting these Mesos components successfully, we can use <code>mesos-execute</code> to launch our Mesos task.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> LIBPROCESS_IP=127.0.0.1</span><br><span class="line"><span class="built_in">export</span> LIBPROCESS_HOSTNAME=127.0.0.1</span><br><span class="line">./src/mesos-execute --master=127.0.0.1:5050 --name=<span class="built_in">test</span> --command=<span class="string">"ls /"</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix</span><br></pre></td></tr></table></figure>
+<p>Now you should found something like</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">I0424 07:16:12.291718  2722 scheduler.cpp:177] Version: 0.29.0</span><br><span class="line">Subscribed with ID <span class="string">'b383e094-b7f2-4841-a737-c4899ef5c81b-0000'</span></span><br><span class="line">Submitted task <span class="string">'test'</span> to agent <span class="string">'b383e094-b7f2-4841-a737-c4899ef5c81b-S0'</span></span><br><span class="line">Received status update TASK_RUNNING <span class="keyword">for</span> task <span class="string">'test'</span></span><br><span class="line">  <span class="built_in">source</span>: SOURCE_EXECUTOR</span><br><span class="line">Received status update TASK_FINISHED <span class="keyword">for</span> task <span class="string">'test'</span></span><br><span class="line">  message: <span class="string">'Command exited with status 0'</span></span><br><span class="line">  <span class="built_in">source</span>: SOURCE_EXECUTOR</span><br></pre></td></tr></table></figure>
+<p>and the stout logs.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">[SB2 <span class="built_in">emulate</span> raspberry] root@precise64 build <span class="comment"># cat /tmp/mesos/slaves/b383e094-b7f2-4841-a737-c4899ef5c81b-S0/frameworks/b383e094-b7f2-4841-a737-c4899ef5c81b-0000/executors/test/runs/latest/stdout</span></span><br><span class="line">Registered executor on 127.0.0.1</span><br><span class="line">Starting task <span class="built_in">test</span></span><br><span class="line">sh -c <span class="string">'ls /'</span></span><br><span class="line">Forked <span class="built_in">command</span> at 2794</span><br><span class="line">bin</span><br><span class="line">boot</span><br><span class="line">dev</span><br><span class="line">etc</span><br><span class="line">home</span><br><span class="line">lib</span><br><span class="line">media</span><br><span class="line">mnt</span><br><span class="line">opt</span><br><span class="line">proc</span><br><span class="line">root</span><br><span class="line">run</span><br><span class="line">sbin</span><br><span class="line">srv</span><br><span class="line">sys</span><br><span class="line">tmp</span><br><span class="line">usr</span><br><span class="line">var</span><br><span class="line">Command exited with status 0 (pid: 2794)</span><br><span class="line">Shutting down</span><br><span class="line">Sending SIGTERM to process tree at pid 2794</span><br><span class="line">Sent SIGTERM to the following process trees:</span><br><span class="line">[</span><br><span class="line"></span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>Yes, they indicate that our Mesos task succeed.</p>
+<p>In additional, if you encounter below error when you want to lauch Mesos in the Raspberry Pi virtual machine. Please make sure you run the docker container with the option <code>--cpuset-cpus=0</code> because qemu had a bug in multi cores environment.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/qemu-1.3.0/tcg/tcg.c:1440: tcg fatal error</span><br></pre></td></tr></table></figure>
+<p>In above content, we show how to compile Mesos for the Raspberry Pi and launch Mesos in the Raspberry Pi. But we still have a lot of works to make Mesos could work on the Raspberry Pi perfectly. Hope this could help you if you are seeking to run Mesos on ARM.</p>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/mesos/">mesos</a>, <a href="/tags/arm/">arm</a>, <a href="/tags/raspberry/">raspberry</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+
+  <nav id="pagination">
+  
+  
+  <div class="clearfix"></div>
+</nav>
+</div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>

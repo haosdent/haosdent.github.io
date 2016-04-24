@@ -1,0 +1,801 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>haosdent</title>
+  <subtitle>Just for fun</subtitle>
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://blog.haosdent.me/"/>
+  <updated>2016-04-24T09:46:10.000Z</updated>
+  <id>http://blog.haosdent.me/</id>
+  
+  <author>
+    <name>Haosdent Huang</name>
+    <email>haosdent@gmail.com</email>
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Mesos on Raspberry Pi</title>
+    <link href="http://blog.haosdent.me/2016/04/24/mesos-on-arm/"/>
+    <id>http://blog.haosdent.me/2016/04/24/mesos-on-arm/</id>
+    <published>2016-04-24T09:22:41.000Z</published>
+    <updated>2016-04-24T09:46:10.000Z</updated>
+    
+    <content type="html">&lt;p&gt;At this Friday, I saw a &lt;a href=&quot;http://search-hadoop.com/m/0Vlr6TCgPiZz7Ja&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;email&lt;/a&gt; mentioned compile Mesos for Raspberry Pi.&lt;br&gt;It is a bit interesting and attracting me, it reminds me the happy time about playing Raspberry Pi when I still was a student two years ago.&lt;br&gt;Now Raspberry Pi is more cheaper over that time (&lt;a href=&quot;https://www.adafruit.com/products/2885&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Raspberry Pi Zero ID: 2885 - $5.00&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;To make Mesos compiled for Raspberry Pi successfully, we have three possible approaches:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Compile Mesos on Raspberry Pi directly.&lt;/li&gt;
+&lt;li&gt;Use cross compiling toolchains to compile Mesos for Raspberry Pi in ARM.&lt;/li&gt;
+&lt;li&gt;Compile Mesos on Raspberry Pi virtual machine.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;For first approaches, there are a lot of header files in Mesos &lt;code&gt;stout&lt;/code&gt; depenency. This requires huge memory when compiling Mesos and make it impossible to compile Mesos on current Raspberry Pi because of lack of memory.&lt;/p&gt;
+&lt;p&gt;For second approaches, it should works theoretically. But Mesos would check the dependent libraries by compiling and running it during configure stage. This mean we need remove those checks in &lt;code&gt;configure&lt;/code&gt; file manually. After I removed those checks, I found I fall into another trap: dependencies loops. The minimize dependent libraries for Mesos are &lt;code&gt;zlib&lt;/code&gt;, &lt;code&gt;apr&lt;/code&gt;, &lt;code&gt;apr-util&lt;/code&gt;, &lt;code&gt;subversion&lt;/code&gt;. I need to cross compiling and perpare them for Mesos firstly. But I blocked by cross compiling &lt;code&gt;subversion&lt;/code&gt; eventually. I found need to solve its dependencies, its dependencies dependencies, its dependencies dependencies dependencies and so on. Seems the only remain possible way is to compile Mesos on Raspberry Pi virtual machine.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;qemu-arm&lt;/code&gt; could simulate the Raspberry Pi architecture in x86 machine. I found a related &lt;a href=&quot;https://github.com/vagrant2use/raspberry&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;vagrant file&lt;/a&gt; in github which make it easiler to set up the Raspberry Pi develop environment. However, it has already been out of maintain over 3 years. The debian version it used (Wheezy) is not new enough to compile Mesos as well. So I create a docker image &lt;a href=&quot;https://hub.docker.com/r/haosdent/raspberry/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;haosdent/raspberry&lt;/a&gt; based on the newest Raspberry Pi operate system(Jessie) according to its puppet files.&lt;/p&gt;
+&lt;p&gt;By this docker image, we could start to compile Mesos for Raspberry Pi.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Launch the Raspberry Pi Development Environment.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;docker run -i -t --net=host --volume=`&lt;span class=&quot;built_in&quot;&gt;pwd&lt;/span&gt;`/mesos:/root/mesos haosdent/raspberry /bin/bash&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;At above command, I mount my local Mesos code into docker container. Keep in mind here, we have to use the master branch of Mesos because of the bundle zookeeper package has updated in the master branch recently. Otherwise we would fail when compiling zookeeper on Raspberry Pi if use the old versions of Mesos.&lt;/p&gt;
+&lt;p&gt;Then we use &lt;code&gt;sb2 -eF&lt;/code&gt; to enter the virtual machine of Raspberry Pi. The shell prompt looks like&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;[SB2 &lt;span class=&quot;built_in&quot;&gt;emulate&lt;/span&gt; raspberry] root@raspberry ~ &lt;span class=&quot;comment&quot;&gt;#&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;if you enter the virtual machine of Raspberry Pi successfully.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Patch &lt;code&gt;pivot_root&lt;/code&gt; in Mesos Code&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Currenlty Mesos still would fail when compiling on Raspberry Pi because of the undefined of &lt;code&gt;__NR_pivot_root&lt;/code&gt;. I take a look at @lyda’s &lt;a href=&quot;https://github.com/lyda/mesos-on-arm/commit/ab4708e5661fc984b50db0e465d689e7b7ba76ef&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;patch for this&lt;/a&gt; before. However, it looks incorrect for me. So I modify it to&lt;/p&gt;
+&lt;figure class=&quot;highlight diff&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;20&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;21&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;diff --git a/src/linux/fs.cpp b/src/linux/fs.cpp&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;index 2087b4a..f29ce8a 100644&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;--- a/src/linux/fs.cpp&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;+++ b/src/linux/fs.cpp&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;@@ -444,6 +444,16 @@ Try&amp;lt;Nothing&amp;gt; pivot_root(&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;   // number for &#39;pivot_root&#39; on the powerpc architecture, see&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;   // https://w3challs.com/syscalls/?arch=powerpc_64&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;   int ret = ::syscall(203, newRoot.c_str(), putOld.c_str());&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+#elif __thumb__&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // A workaround for arm thumb mode. The magic number &#39;218&#39; is the syscall&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // number for &#39;pivot_root&#39; on the arm thumb mode, see&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // https://w3challs.com/syscalls/?arch=arm_thumb&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  int ret = ::syscall(218, newRoot.c_str(), putOld.c_str());&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+#elif __arm__&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // A workaround for arm. The magic number &#39;9437402&#39; is the syscall&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // number for &#39;pivot_root&#39; on the arm architecture, see&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  // https://w3challs.com/syscalls/?arch=arm_strong&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;addition&quot;&gt;+  int ret = ::syscall(9437402, newRoot.c_str(), putOld.c_str());&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; #else&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; #error &quot;pivot_root is not available&quot;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; #endif&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;ol&gt;
+&lt;li&gt;Following &lt;a href=&quot;https://github.com/apache/mesos/blob/master/docs/getting-started.md#ubuntu-1404&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Mesos Getting Started Guide&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;After finish above prepare works, we could use following commands to start to compile Mesos.&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;apt-get install -y tar wget git&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;apt-get install -y autoconf libtool&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;apt-get -y install build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev libsasl2-modules maven libapr1-dev libsvn-dev&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;cd&lt;/span&gt; ~/mesos&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;./bootstrap&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;mkdir build&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;cd&lt;/span&gt; build&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;../configure --disable-python --disable-java&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;make&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;Noted that we disable java and python when compiling. I encounter some tricky problems when compiled with java in Raspberry Pi and not yet to&lt;br&gt;investigate.&lt;/p&gt;
+&lt;p&gt;The stage would take quite a long time. It taked more than 8 hours in my slow machine. You could use &lt;code&gt;make -j &amp;lt;number of cores&amp;gt;&lt;/code&gt; if your machine have more cpu cores.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Launch Your First Mesos Task in the Raspberry Pi&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;You should build it successfully if your finished above stages. And we could copy the whole packages to our real Raspberry Pi machine. However, some Mesos feautres don’t work in the Raspberry Pi correctly. For example, &lt;code&gt;replicated_log&lt;/code&gt; and &lt;code&gt;cgroups&lt;/code&gt;. So we need use following commands to start Mesos Master and Mesos Agent.&lt;/p&gt;
+&lt;p&gt;4.1 Start Mesos Agent&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;./bin/mesos-master.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --registry=&lt;span class=&quot;keyword&quot;&gt;in&lt;/span&gt;_memory&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;4.2 Start Mesos Agent&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;After starting these Mesos components successfully, we can use &lt;code&gt;mesos-execute&lt;/code&gt; to launch our Mesos task.&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; LIBPROCESS_IP=127.0.0.1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; LIBPROCESS_HOSTNAME=127.0.0.1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;./src/mesos-execute --master=127.0.0.1:5050 --name=&lt;span class=&quot;built_in&quot;&gt;test&lt;/span&gt; --command=&lt;span class=&quot;string&quot;&gt;&quot;ls /&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;./bin/mesos-slave.sh --work_dir=/tmp/mesos --ip=127.0.0.1 --hostname=127.0.0.1 --master=127.0.0.1:5050 --launcher=posix&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;Now you should found something like&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;I0424 07:16:12.291718  2722 scheduler.cpp:177] Version: 0.29.0&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Subscribed with ID &lt;span class=&quot;string&quot;&gt;&#39;b383e094-b7f2-4841-a737-c4899ef5c81b-0000&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Submitted task &lt;span class=&quot;string&quot;&gt;&#39;test&#39;&lt;/span&gt; to agent &lt;span class=&quot;string&quot;&gt;&#39;b383e094-b7f2-4841-a737-c4899ef5c81b-S0&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Received status update TASK_RUNNING &lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt; task &lt;span class=&quot;string&quot;&gt;&#39;test&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;built_in&quot;&gt;source&lt;/span&gt;: SOURCE_EXECUTOR&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Received status update TASK_FINISHED &lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt; task &lt;span class=&quot;string&quot;&gt;&#39;test&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  message: &lt;span class=&quot;string&quot;&gt;&#39;Command exited with status 0&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;built_in&quot;&gt;source&lt;/span&gt;: SOURCE_EXECUTOR&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;and the stout logs.&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;20&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;21&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;22&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;23&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;24&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;25&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;26&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;27&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;28&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;29&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;30&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;[SB2 &lt;span class=&quot;built_in&quot;&gt;emulate&lt;/span&gt; raspberry] root@precise64 build &lt;span class=&quot;comment&quot;&gt;# cat /tmp/mesos/slaves/b383e094-b7f2-4841-a737-c4899ef5c81b-S0/frameworks/b383e094-b7f2-4841-a737-c4899ef5c81b-0000/executors/test/runs/latest/stdout&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Registered executor on 127.0.0.1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Starting task &lt;span class=&quot;built_in&quot;&gt;test&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sh -c &lt;span class=&quot;string&quot;&gt;&#39;ls /&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Forked &lt;span class=&quot;built_in&quot;&gt;command&lt;/span&gt; at 2794&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;bin&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;boot&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;dev&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;etc&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;home&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;lib&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;media&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;mnt&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;opt&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;proc&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;root&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;run&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sbin&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;srv&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sys&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;tmp&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;usr&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;var&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Command exited with status 0 (pid: 2794)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Shutting down&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Sending SIGTERM to process tree at pid 2794&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Sent SIGTERM to the following process trees:&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;[&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;]&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;Yes, they indicate that our Mesos task succeed.&lt;/p&gt;
+&lt;p&gt;In additional, if you encounter below error when you want to lauch Mesos in the Raspberry Pi virtual machine. Please make sure you run the docker container with the option &lt;code&gt;--cpuset-cpus=0&lt;/code&gt; because qemu had a bug in multi cores environment.&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;/qemu-1.3.0/tcg/tcg.c:1440: tcg fatal error&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;In above content, we show how to compile Mesos for the Raspberry Pi and launch Mesos in the Raspberry Pi. But we still have a lot of works to make Mesos could work on the Raspberry Pi perfectly. Hope this could help you if you are seeking to run Mesos on ARM.&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;At this Friday, I saw a &lt;a href=&quot;http://search-hadoop.com/m/0Vlr6TCgPiZz7Ja&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;email&lt;/a&gt; mentioned compile M
+    
+    </summary>
+    
+    
+      <category term="mesos" scheme="http://blog.haosdent.me/tags/mesos/"/>
+    
+      <category term="arm" scheme="http://blog.haosdent.me/tags/arm/"/>
+    
+      <category term="raspberry" scheme="http://blog.haosdent.me/tags/raspberry/"/>
+    
+  </entry>
+  
+  <entry>
+    <title></title>
+    <link href="http://blog.haosdent.me/2016/02/06/libhbase%E7%BC%96%E8%AF%91%E5%B0%8F%E8%AE%B0/"/>
+    <id>http://blog.haosdent.me/2016/02/06/libhbase编译小记/</id>
+    <published>2016-02-06T09:08:55.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;h2 id=&quot;libhbase编译小记&quot;&gt;&lt;a href=&quot;#libhbase编译小记&quot; class=&quot;headerlink&quot; title=&quot;libhbase编译小记&quot;&gt;&lt;/a&gt;libhbase编译小记&lt;/h2&gt;&lt;p&gt;从MapR的Github上下下来的&lt;code&gt;libhbase&lt;/code&gt;后不论在OS X上还是Linux上都编译失败，对照着错误修改了多处地方，使得在OS X上和Linux上都能正常编译和运行。修改过的代码地址：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;git@github.com:haosdent/libhbase.git&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;编译前先保证&lt;code&gt;ant&lt;/code&gt;已安装，使用1.6的JDK作为&lt;code&gt;JAVA_HOME&lt;/code&gt;，同时加下&lt;code&gt;203.208.46.222   googletest.googlecode.com&lt;/code&gt;到&lt;code&gt;hosts&lt;/code&gt;文件（感谢伟大的GFW）。&lt;br&gt;clone代码后直接执行:&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;mvn install -DskipTests&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;正常结束后可以看到&lt;code&gt;target/libhbase-1.0-SNAPSHOT/&lt;/code&gt;这个目录，说明已经编译成功。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;libhbase&lt;/code&gt;的样例代码可参考&lt;a href=&quot;https://github.com/haosdent/libhbase/blob/master/src/examples/async/example_async.c&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;example_async&lt;/a&gt;这个文件。&lt;/p&gt;
+&lt;p&gt;在Linux下，编译代码时，需要将&lt;code&gt;libhbase.so&lt;/code&gt;和&lt;code&gt;libjvm.so&lt;/code&gt;加入动态链接库的搜索路径，同时加入先前编译得到的头文件。头文件和&lt;code&gt;libhbase.so&lt;/code&gt;分别在&lt;code&gt;target/libhbase-1.0-SNAPSHOT/include&lt;/code&gt;目录和&lt;code&gt;target/libhbase-1.0-SNAPSHOT/native&lt;/code&gt;目录下，&lt;code&gt;libjvm.so&lt;/code&gt;在&lt;code&gt;${JAVA_HOME}/jre/lib/amd64/server&lt;/code&gt;目录下，&lt;br&gt;编译命令如下所示：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;gcc example_async.c -I $&amp;#123;LIB_HBASE_HOME&amp;#125;/target/libhbase-1.0-SNAPSHOT/include -L $&amp;#123;LIB_HBASE_HOME&amp;#125;/target/libhbase-1.0-SNAPSHOT/lib/native -L $&amp;#123;JAVA_HOME&amp;#125;/jre/lib/amd64/server -l hbase -l jvm -std=c99&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;Linux上运行编译好后的文件，也需要将&lt;code&gt;${JAVA_HOME}/jre/lib/amd64/server&lt;/code&gt;和&lt;code&gt;target/libhbase-1.0-SNAPSHOT/native&lt;/code&gt;加入到&lt;code&gt;LD_LIBRARY_PATH&lt;/code&gt;环境变量。&lt;/p&gt;
+&lt;p&gt;在OS X下，编译代码与Linux上类似，但需要加入动态链接库搜索路径的是&lt;code&gt;libhbase.dylib&lt;/code&gt;和&lt;code&gt;libjvm.dylib&lt;/code&gt;，&lt;code&gt;libhbase.dylib&lt;/code&gt;在&lt;code&gt;target/libhbase-1.0-SNAPSHOT/native&lt;/code&gt;目录下，&lt;code&gt;libhbase.dylib&lt;/code&gt;则在&lt;code&gt;${JAVA_HOME}/../Libraries&lt;/code&gt;。编译命令如下所示：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;gcc example_async.c -I $&amp;#123;LIB_HBASE_HOME&amp;#125;/target/libhbase-1.0-SNAPSHOT/include -L $&amp;#123;LIB_HBASE_HOME&amp;#125;/target/libhbase-1.0-SNAPSHOT/lib/native -L $&amp;#123;JAVA_HOME&amp;#125;/../Libraries -l hbase -l jvm -std=c99&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;值得注意的是，OS X上所用gcc需为GNU GCC，而非Apple LLVM Clang，可通过HomeBrew直接安装GCC。&lt;/p&gt;
+&lt;p&gt;OS X上运行编译好后的文件，也需要将&lt;code&gt;${JAVA_HOME}/../Libraries&lt;/code&gt;和&lt;code&gt;target/libhbase-1.0-SNAPSHOT/native&lt;/code&gt;加入到&lt;code&gt;LD_LIBRARY_PATH&lt;/code&gt;环境变量。&lt;/p&gt;
+&lt;p&gt;最后简单测了下&lt;code&gt;libhbase&lt;/code&gt;的写入性能，由于&lt;code&gt;libhbase&lt;/code&gt;提供的接口都是异步接口，所以只用了一个线程，往HBase里面插入100w条数据。在写HLog的情况下，写入的QPS在5W每秒左右，基本跑满网卡。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;libhbase编译小记&quot;&gt;&lt;a href=&quot;#libhbase编译小记&quot; class=&quot;headerlink&quot; title=&quot;libhbase编译小记&quot;&gt;&lt;/a&gt;libhbase编译小记&lt;/h2&gt;&lt;p&gt;从MapR的Github上下下来的&lt;code&gt;libhbas
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>生成IO频谱图</title>
+    <link href="http://blog.haosdent.me/2015/02/25/%E7%94%9F%E6%88%90IO%E9%A2%91%E8%B0%B1%E5%9B%BE/"/>
+    <id>http://blog.haosdent.me/2015/02/25/生成IO频谱图/</id>
+    <published>2015-02-25T12:36:29.000Z</published>
+    <updated>2016-04-24T09:43:47.000Z</updated>
+    
+    <content type="html">&lt;p&gt;&lt;a href=&quot;http://www.sysdig.org/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;sysdig&lt;/a&gt;是一个强大的调试分析工具，可以很方便地排查网络、磁盘IO、CPU等（&lt;a href=&quot;http://www.sysdig.org/wiki/sysdig-examples/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;例子&lt;/a&gt;）。&lt;/p&gt;
+&lt;p&gt;另外sysdig有个比较炫酷的功能是可以画IO的频谱图。&lt;br&gt;&lt;img src=&quot;https://sysdig.com/wp-content/uploads/2014/10/animation.gif&quot; alt=&quot;IO频谱图&quot;&gt;&lt;/p&gt;
+&lt;p&gt;是通过分析open、close、read、write、socket等系统调用的延迟来实时渲染。X坐标轴并非等分，渲染频率默认为一秒两次，从深绿到深红分别表示IO调用的频繁程度。&lt;/p&gt;
+&lt;p&gt;或者整个系统的IO频谱图命令为：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;sysdig -c spectrogram 500&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;若需指定特定进程，可加上sysdig的&lt;a href=&quot;https://github.com/draios/sysdig/wiki/Sysdig%20User%20Guide#filtering&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;filter&lt;/a&gt;条件来过滤&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;sysdig -c spectrogram proc.pid=20&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;还可以指定只采样某种类型IO的延迟&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;sysdig -c spectrogram proc.pid=20 and fd.type=file&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;a href=&quot;http://www.sysdig.org/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;sysdig&lt;/a&gt;是一个强大的调试分析工具，可以很方便地排查网络、磁盘IO、CPU等（&lt;a href=&quot;http://www.sysdig.or
+    
+    </summary>
+    
+    
+      <category term="sysdig" scheme="http://blog.haosdent.me/tags/sysdig/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>阿里云ECS上Hadoop HDFS的简单性能测试</title>
+    <link href="http://blog.haosdent.me/2014/05/24/%E9%98%BF%E9%87%8C%E4%BA%91ECS%E4%B8%8AHadoop-HDFS%E7%9A%84%E7%AE%80%E5%8D%95%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/"/>
+    <id>http://blog.haosdent.me/2014/05/24/阿里云ECS上Hadoop-HDFS的简单性能测试/</id>
+    <published>2014-05-24T05:50:13.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;在阿里云的ECS上部署了Hadoop，做了下HDFS的简单性能测试，记录如下，性能差距比较大。&lt;/p&gt;
+&lt;p&gt;使用的阿里云ECS配置如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;参数名&lt;/th&gt;
+&lt;th&gt;参数值&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Region&lt;/td&gt;
+&lt;td&gt;青岛&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;CPU&lt;/td&gt;
+&lt;td&gt;1核&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;内存&lt;/td&gt;
+&lt;td&gt;512MB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;实例规格&lt;/td&gt;
+&lt;td&gt;ecs.t1.xsmall&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;系统盘&lt;/td&gt;
+&lt;td&gt;20G&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;操作系统&lt;/td&gt;
+&lt;td&gt;CentOS 6.3 64位&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Hadoop HDFS的配置如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;参数名&lt;/th&gt;
+&lt;th&gt;参数值&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;HDFS版本&lt;/td&gt;
+&lt;td&gt;社区2.4.0&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;集群ECS台数&lt;/td&gt;
+&lt;td&gt;6台&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;JVM堆大小&lt;/td&gt;
+&lt;td&gt;-Xmx400m&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;NameNode&lt;/td&gt;
+&lt;td&gt;2台ECS&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;JournalNode&lt;/td&gt;
+&lt;td&gt;1台ECS&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;DataNode&lt;/td&gt;
+&lt;td&gt;3台ECS&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;使用了TestDFSIO在同一个网段的另外一台独立的ECS上做多线程的简单写入和读取速率测试，结果如下（3次测试的平均结果）：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;测试类型&lt;/th&gt;
+&lt;th&gt;并发数&lt;/th&gt;
+&lt;th&gt;每个线程的写入大小&lt;/th&gt;
+&lt;th&gt;速率&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;写入&lt;/td&gt;
+&lt;td&gt;10&lt;/td&gt;
+&lt;td&gt;1GB&lt;/td&gt;
+&lt;td&gt;24.01MB/s&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;读取&lt;/td&gt;
+&lt;td&gt;10&lt;/td&gt;
+&lt;td&gt;1GB&lt;/td&gt;
+&lt;td&gt;40.55MB/s&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;虽然是最低配置，但由于机器上没有跑任何额外程序，Hadoop也只启动了HDFS，且测试程序是在另外一台ECS跑，所以正常应该是能跑慢网卡。&lt;/p&gt;
+&lt;p&gt;由于DataNode数据为3，所以这个速率可以近似认为是单台DataNode写云磁盘的速率，瓶颈应该还是在云磁盘。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在阿里云的ECS上部署了Hadoop，做了下HDFS的简单性能测试，记录如下，性能差距比较大。&lt;/p&gt;
+&lt;p&gt;使用的阿里云ECS配置如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;参数名&lt;/th&gt;
+&lt;th&gt;参数值&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;
+    
+    </summary>
+    
+    
+      <category term="Hadoop" scheme="http://blog.haosdent.me/tags/Hadoop/"/>
+    
+      <category term="ECS" scheme="http://blog.haosdent.me/tags/ECS/"/>
+    
+      <category term="aliyun" scheme="http://blog.haosdent.me/tags/aliyun/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>用perf给Hadoop画CPU火焰图和IO热力图</title>
+    <link href="http://blog.haosdent.me/2014/05/10/%E7%94%A8perf%E7%BB%99Hadoop%E7%94%BBCPU%E7%81%AB%E7%84%B0%E5%9B%BE%E5%92%8CIO%E7%83%AD%E5%8A%9B%E5%9B%BE/"/>
+    <id>http://blog.haosdent.me/2014/05/10/用perf给Hadoop画CPU火焰图和IO热力图/</id>
+    <published>2014-05-10T12:20:58.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;perf自带的分析结果查看方式主要是tui，这种查看方式是在终端下进行查看。Brendan Gregg大神写了几个Perl脚本，可以将perf的结果转换成更直观的火焰图和热力图，本文以Hadoop的HDFS为例介绍如何以更直观的方式查看perf的分析结果。&lt;/p&gt;
+&lt;h4 id=&quot;1-安装aliperf和taobao-jdk&quot;&gt;&lt;a href=&quot;#1-安装aliperf和taobao-jdk&quot; class=&quot;headerlink&quot; title=&quot;1. 安装aliperf和taobao-jdk&quot;&gt;&lt;/a&gt;1. 安装aliperf和taobao-jdk&lt;/h4&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;sudo yum install aliperf -btest -y&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sudo yum install taobao-jdk -y&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;因为要分析的是Java程序，只有aliperf和taobao-jdk配合才能解析出JIT符号，不然查看perf的分析结果时，看不到Java代码中对应的方法和类。&lt;/p&gt;
+&lt;h4 id=&quot;2-修改JVM启动参数&quot;&gt;&lt;a href=&quot;#2-修改JVM启动参数&quot; class=&quot;headerlink&quot; title=&quot;2. 修改JVM启动参数&quot;&gt;&lt;/a&gt;2. 修改JVM启动参数&lt;/h4&gt;&lt;p&gt;本文用到的Hadoop是社区的trunk版本，要在&lt;code&gt;${HADOOP_HOME}/etc/hadoop-env.sh&lt;/code&gt;修改&lt;code&gt;${HADOOP_NAMENODE_OPTS}&lt;/code&gt;和&lt;code&gt;${HADOOP_DATANODE_OPTS}&lt;/code&gt;这两个变量，让JVM启动时带上&lt;code&gt;libjvmti_perf.so&lt;/code&gt;这个插件，如下所示，修改完后重启运行perf的机器上的NameNode和DataNode。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; HADOOP_NAMENODE_OPTS=&lt;span class=&quot;string&quot;&gt;&quot;-Dhadoop.security.logger=&lt;span class=&quot;variable&quot;&gt;$&amp;#123;HADOOP_SECURITY_LOGGER:-INFO,RFAS&amp;#125;&lt;/span&gt; -Dhdfs.audit.logger=&lt;span class=&quot;variable&quot;&gt;$&amp;#123;HDFS_AUDIT_LOGGER:-INFO,NullAppender&amp;#125;&lt;/span&gt; -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile &lt;span class=&quot;variable&quot;&gt;$HADOOP_NAMENODE_OPTS&lt;/span&gt;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; HADOOP_DATANODE_OPTS=&lt;span class=&quot;string&quot;&gt;&quot;-Dhadoop.security.logger=ERROR,RFAS -agentpath:/usr/libexec/perf-core/libs/libjvmti_perf.so -XX:+UseOprofile &lt;span class=&quot;variable&quot;&gt;$HADOOP_DATANODE_OPTS&lt;/span&gt;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;h4 id=&quot;3-画CPU火焰图&quot;&gt;&lt;a href=&quot;#3-画CPU火焰图&quot; class=&quot;headerlink&quot; title=&quot;3. 画CPU火焰图&quot;&gt;&lt;/a&gt;3. 画CPU火焰图&lt;/h4&gt;&lt;p&gt;先把Brendan Gregg大神的FlameGraph脚本下载下来&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;git &lt;span class=&quot;built_in&quot;&gt;clone&lt;/span&gt; git@github.com:brendangregg/FlameGraph.git&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;cd&lt;/span&gt; FlameGraph&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;执行HDFS的TestDFSIO压测下，让DataNode有点动静&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;hadoop jar &lt;span class=&quot;variable&quot;&gt;$&amp;#123;HADOOP_HOME&amp;#125;&lt;/span&gt;/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;然后开启perf分析下DataNode，这里&lt;code&gt;11691&lt;/code&gt;是DataNode的进程ID。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;perf record &lt;span class=&quot;_&quot;&gt;-a&lt;/span&gt; -g -p 11691&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，这时候用&lt;code&gt;perf report --stdio&lt;/code&gt;已经可以直接查看结果。但是如果需要查看火焰图的话，需要再对perf.data做下转换。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;perf script | ./stackcollapse-perf.pl | ./flamegraph.pl &amp;gt;perf.svg&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;执行上面的命令后，把perf.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。实际上生成的是svg，所以鼠标移上去左下角会显示完整的Java方法名。但由于下图只是截屏，所以没法体验到这效果&lt;br&gt;&lt;img src=&quot;/images/perf_flame_testdfsio.png&quot; alt=&quot;TestDFSIO火焰图&quot;&gt;&lt;/p&gt;
+&lt;h4 id=&quot;4-画IO热力图&quot;&gt;&lt;a href=&quot;#4-画IO热力图&quot; class=&quot;headerlink&quot; title=&quot;4. 画IO热力图&quot;&gt;&lt;/a&gt;4. 画IO热力图&lt;/h4&gt;&lt;p&gt;步骤很类似，把Brendan Gregg大神的HeatMap脚本下载下来&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;git &lt;span class=&quot;built_in&quot;&gt;clone&lt;/span&gt; git@github.com:brendangregg/HeatMap.git&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;cd&lt;/span&gt; HeatMap&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;执行HDFS的TestDFSIO压测下，让DataNode有点动静&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;hadoop jar &lt;span class=&quot;variable&quot;&gt;$&amp;#123;HADOOP_HOME&amp;#125;&lt;/span&gt;/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.4.0-tests.jar TestDFSIO -read -nrFiles 100 -size 1000MB -resFile ./logs/write.result&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;然后开启perf分析下DataNode磁盘IO事件，这里&lt;code&gt;block_rq_issu&lt;/code&gt;是发出IO请求时的事件，&lt;code&gt;block_rq_complete&lt;/code&gt;是IO请求处理结束时的事件，&lt;code&gt;11691&lt;/code&gt;是DataNode的进程ID，会统计DataNode发出IO请求到操作系统处理完IO请求的时间。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;perf record &lt;span class=&quot;_&quot;&gt;-e&lt;/span&gt; block:block_rq_issue &lt;span class=&quot;_&quot;&gt;-e&lt;/span&gt; block:block_rq_complete &lt;span class=&quot;_&quot;&gt;-a&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;等到TestDFSIO运行完成后，可以看到当前目录下面已经有perf.data这个文件，执行如下命令生成IO热力图。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;perf script | awk &lt;span class=&quot;string&quot;&gt;&#39;&amp;#123; gsub(/:/, &quot;&quot;) &amp;#125; $5 ~ /issue/ &amp;#123; ts[$6, $10] = $4 &amp;#125; $5 ~ /complete/ &amp;#123; if (l = ts[$6, $9]) &amp;#123; printf &quot;%.f %.f\n&quot;, $4 * 1000000, ($4 - l) * 1000000; ts[$6, $10] = 0 &amp;#125; &amp;#125;&#39;&lt;/span&gt; &amp;gt; out.lat_us&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;./trace2heatmap.pl --unitstime=us --unitslat=us --stepsec=40 --maxlat=100000 out.lat_us &amp;gt; out.svg&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;执行上面的命令后，把out.svg搞到本地后，用浏览器打开就可以看到类似下面的结果。横坐标是时间轴，单位由上面的&lt;code&gt;--stepsec&lt;/code&gt;参数指定，纵坐标是IO操作的延迟时间，单位由上面的&lt;code&gt;--unitstime&lt;/code&gt;参数指定，上限由&lt;code&gt;--maxlat&lt;/code&gt;指定，由于TestDFSIO指定运行时间较短，所以perf搜集到的IO操作并不是那么多，如果运行的时间更长的话，生成的热力图会更加壮观。生成的是svg，所以鼠标移上去左下角会显示每个点的具体含义。但由于下图只是截屏，所以没法体验到这效果。&lt;br&gt;&lt;img src=&quot;/images/perf_heatmap_testdfsio.png&quot; alt=&quot;TestDFSIO热力图&quot;&gt;&lt;/p&gt;
+&lt;h4 id=&quot;5-结束&quot;&gt;&lt;a href=&quot;#5-结束&quot; class=&quot;headerlink&quot; title=&quot;5. 结束&quot;&gt;&lt;/a&gt;5. 结束&lt;/h4&gt;&lt;p&gt;perf是个很强大的工具，Brendan Gregg大神的这几个脚本可以让我们更直观地查看perf的分析结果。不过怎么结合这些分析结果改进程序的性能，还是需要对程序的代码足够了解才能有的放矢地进行改进。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;perf自带的分析结果查看方式主要是tui，这种查看方式是在终端下进行查看。Brendan Gregg大神写了几个Perl脚本，可以将perf的结果转换成更直观的火焰图和热力图，本文以Hadoop的HDFS为例介绍如何以更直观的方式查看perf的分析结果。&lt;/p&gt;
+&lt;h4 
+    
+    </summary>
+    
+    
+      <category term="Hadoop" scheme="http://blog.haosdent.me/tags/Hadoop/"/>
+    
+      <category term="perf" scheme="http://blog.haosdent.me/tags/perf/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hadoop lzo找不到Native库解决方法</title>
+    <link href="http://blog.haosdent.me/2014/05/05/Hadoop-lzo%E6%89%BE%E4%B8%8D%E5%88%B0Native%E5%BA%93%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95/"/>
+    <id>http://blog.haosdent.me/2014/05/05/Hadoop-lzo找不到Native库解决方法/</id>
+    <published>2014-05-04T16:00:01.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;Hadoop lzo相关的错误有两个，分别为：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Could not load native gpl library&lt;/li&gt;
+&lt;li&gt;native-lzo library not available&lt;br&gt;下面会分别说明&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&quot;Could-not-load-native-gpl-library&quot;&gt;&lt;a href=&quot;#Could-not-load-native-gpl-library&quot; class=&quot;headerlink&quot; title=&quot;Could not load native gpl library&quot;&gt;&lt;/a&gt;Could not load native gpl library&lt;/h3&gt;&lt;p&gt;很多HBase用户在用BulkLoad从Hadoop往HBase导入数据的时候，会遇到如下情况。报hadoop lzo找不到gplcompression的错误。&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;ERROR lzo.GPLNativeCodeLoader: Could not load native gpl library&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;java.lang.UnsatisfiedLinkError: no gplcompression in java.library.path&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    at java.lang.ClassLoader.loadLibrary(ClassLoader.java:1738)     &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    at java.lang.Runtime.loadLibrary0(Runtime.java:823)     &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    at java.lang.System.loadLibrary(System.java:1028)     &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    at com.Hadoop.compression.lzo.GPLNativeCodeLoader.&amp;lt;clinit&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;这个错误是因为生成HFile的时候开启了LZO压缩，开启LZO压缩可以有效的减少HFile大小（压缩比平均20%），有效减少distcp传输时间。但由于云梯1的&lt;code&gt;java.library.path&lt;/code&gt;路径下并不包含gplcompression这个Native库，所以若生成HFile时开启LZO，则会报如上错误。解决方法很简单，将&lt;a href=&quot;/files/hadoop-lzo-0.4.20-mr1.jar&quot;&gt;hadoop-lzo-0.4.20-mr1&lt;/a&gt;（MapReduce 1编译版本）或&lt;a href=&quot;/files/hadoop-lzo-0.4.20.jar&quot;&gt;hadoop-lzo-0.4.20&lt;/a&gt;（MapReduce 2编译版本）下载的jar包加入到&lt;code&gt;-libjars&lt;/code&gt;参数重新执行即可。&lt;/p&gt;
+&lt;p&gt;原因是hadoop-lzo的作者考虑到了上述情况，所以直接将gplcompression打包进了jar中。查看&lt;code&gt;hadoop-lzo-0.4.20-mr1.jar&lt;/code&gt;可发现，&lt;code&gt;gplcompression&lt;/code&gt;的Native库，都已经加入到jar包中的 &lt;code&gt;native/Linux-amd64-64/lib&lt;/code&gt;下面&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;$: jar -tf hadoop-lzo-0.4.20-mr1.jar |grep native&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/libgplcompression.a&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/libgplcompression.la&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/libgplcompression.so.0.0.0&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/libgplcompression.so.0&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;native/Linux-amd64-64/lib/libgplcompression.so&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;hadoop-lzo的实现中会先将gplcompression的Native库从jar包中解压到临时地址，并load进该库。详细代码可参见作者托管在Github上的代码&lt;a href=&quot;https://github.com/twitter/hadoop-lzo/blob/master/src/main/java/com/hadoop/compression/lzo/GPLNativeCodeLoader.java#L85&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;GPLNativeCodeLoader#unpackBinaries&lt;/a&gt;&lt;/p&gt;
+&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;// locate the binaries inside the jar&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;String fileName = System.mapLibraryName(LIBRARY_NAME);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;String directory = getDirectoryLocation();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;// use the current defining classloader to load the resource&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;InputStream is = GPLNativeCodeLoader.class.getResourceAsStream(directory + &lt;span class=&quot;string&quot;&gt;&quot;/&quot;&lt;/span&gt; + fileName);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;h3 id=&quot;native-lzo-library-not-available&quot;&gt;&lt;a href=&quot;#native-lzo-library-not-available&quot; class=&quot;headerlink&quot; title=&quot;native-lzo library not available&quot;&gt;&lt;/a&gt;native-lzo library not available&lt;/h3&gt;&lt;p&gt;另一个与Hadoop lzo常见的错误是：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;java.lang.RuntimeException: native-lzo library not available&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;这个错误是执行你的写HDFS程序的机器没有安装&lt;code&gt;lzo-devel&lt;/code&gt;，程序在&lt;code&gt;LD_LIBRARY_PATH&lt;/code&gt;下找不到&lt;code&gt;liblzo2.so.2&lt;/code&gt;导致的，在该机器上执行如下命令安装即可。&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;yum install lzo lzo-devel&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;或者直接到已安装lzo的机器上将&lt;code&gt;/usr/lib64/liblzo2.so.2&lt;/code&gt;下到本地，然后代码中手动load即可。&lt;/p&gt;
+&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;System.load(liblzo2.so.2的存放地址);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Hadoop lzo相关的错误有两个，分别为：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Could not load native gpl library&lt;/li&gt;
+&lt;li&gt;native-lzo library not available&lt;br&gt;下面会分别说明&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h
+    
+    </summary>
+    
+    
+      <category term="Hadoop" scheme="http://blog.haosdent.me/tags/Hadoop/"/>
+    
+      <category term="HBase" scheme="http://blog.haosdent.me/tags/HBase/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>jcgroup</title>
+    <link href="http://blog.haosdent.me/2014/02/11/jcgroup/"/>
+    <id>http://blog.haosdent.me/2014/02/11/jcgroup/</id>
+    <published>2014-02-11T10:56:54.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;#Cgroup on JVM&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://travis-ci.org/haosdent/jcgroup&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;&lt;img src=&quot;https://travis-ci.org/haosdent/jcgroup.png?branch=master&quot; alt=&quot;Build Status&quot;&gt;&lt;/a&gt; &lt;a href=&quot;https://coveralls.io/r/haosdent/jcgroup?branch=master&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;&lt;img src=&quot;https://coveralls.io/repos/haosdent/jcgroup/badge.png?branch=master&quot; alt=&quot;Coverage Status&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;jcgroup is a cgroup wrapper on JVM. You could use this library to limit the CPU shares, Disk I/O speed, Network bandwidth and etc of a thread.&lt;/p&gt;
+&lt;h2 id=&quot;Subsystems&quot;&gt;&lt;a href=&quot;#Subsystems&quot; class=&quot;headerlink&quot; title=&quot;Subsystems&quot;&gt;&lt;/a&gt;Subsystems&lt;/h2&gt;&lt;p&gt;☑ blkio&lt;br&gt;&lt;br&gt;☑ common&lt;br&gt;&lt;br&gt;☑ cpu&lt;br&gt;&lt;br&gt;☑ cpuacct&lt;br&gt;&lt;br&gt;☑ cpuset&lt;br&gt;&lt;br&gt;☑ devices&lt;br&gt;&lt;br&gt;☑ freezer&lt;br&gt;&lt;br&gt;☑ memory&lt;br&gt;&lt;br&gt;☑ net_cls&lt;br&gt;&lt;br&gt;☑ net_prio&lt;br&gt;&lt;/p&gt;
+&lt;h2 id=&quot;Example&quot;&gt;&lt;a href=&quot;#Example&quot; class=&quot;headerlink&quot; title=&quot;Example&quot;&gt;&lt;/a&gt;Example&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;This code snippet create two threads and set different cpu shares of them. One is 512 while another is 2048.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src=&quot;https://raw.github.com/haosdent/jcgroup/master/img/jcgroup_example_cpu.jpg&quot; alt=&quot;jcgroup_example_cpu&quot;&gt;&lt;/p&gt;
+&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;20&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;21&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;22&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;23&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;24&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;25&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;26&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;27&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;28&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;29&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;30&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;31&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;32&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;33&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;34&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;35&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;36&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;37&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;38&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;39&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;40&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;41&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;42&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;43&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;44&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;45&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;46&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;47&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;48&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;49&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;50&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;51&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;52&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;53&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;54&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;55&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;56&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;57&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;58&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;59&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;60&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;61&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;62&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;63&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;64&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;65&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;66&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;67&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;68&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;69&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;70&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;71&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;72&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;73&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;74&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;75&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;76&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;77&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;class&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;ExampleTest&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;keyword&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;final&lt;/span&gt; Logger LOG = LoggerFactory.getLogger(ExampleTest.class);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;keyword&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; Admin admin;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;keyword&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; Group root;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;keyword&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; Group one;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;keyword&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; Group two;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;meta&quot;&gt;@BeforeClass&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;setUpClass&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      admin = &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Admin(Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      root = admin.getRootGroup();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      one = admin.createGroup(&lt;span class=&quot;string&quot;&gt;&quot;one&quot;&lt;/span&gt;, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      two = admin.createGroup(&lt;span class=&quot;string&quot;&gt;&quot;two&quot;&lt;/span&gt;, Constants.SUBSYS_CPUSET | Constants.SUBSYS_CPU);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (IOException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      LOG.error(&lt;span class=&quot;string&quot;&gt;&quot;Create cgroup Failed.&quot;&lt;/span&gt;, e);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      assertTrue(&lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;meta&quot;&gt;@AfterClass&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;tearDownClass&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      admin.umount();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (IOException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      LOG.error(&lt;span class=&quot;string&quot;&gt;&quot;Umount cgroup failed.&quot;&lt;/span&gt;, e);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      assertTrue(&lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;meta&quot;&gt;@Test&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;testCpu&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      one.getCpuset().setCpus(&lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt;[]&amp;#123;&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;&amp;#125;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      two.getCpuset().setCpus(&lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt;[]&amp;#123;&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;&amp;#125;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      one.getCpuset().setMems(&lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt;[]&amp;#123;&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;&amp;#125;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      two.getCpuset().setMems(&lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt;[]&amp;#123;&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;&amp;#125;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      one.getCpu().setShares(&lt;span class=&quot;number&quot;&gt;512&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      two.getCpu().setShares(&lt;span class=&quot;number&quot;&gt;2048&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;final&lt;/span&gt; Group oneTmp = one;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;final&lt;/span&gt; Group twoTmp = two;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Thread()&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;meta&quot;&gt;@Override&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt; id = Threads.getThreadId();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          LOG.info(&lt;span class=&quot;string&quot;&gt;&quot;Thread id:&quot;&lt;/span&gt; + id);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            oneTmp.getCpu().addTask(id);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;keyword&quot;&gt;while&lt;/span&gt; (&lt;span class=&quot;keyword&quot;&gt;true&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (IOException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            LOG.error(&lt;span class=&quot;string&quot;&gt;&quot;Test cpu failed.&quot;&lt;/span&gt;, e);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            assertTrue(&lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;.start();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Thread()&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;meta&quot;&gt;@Override&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt; id = Threads.getThreadId();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          LOG.info(&lt;span class=&quot;string&quot;&gt;&quot;Thread id:&quot;&lt;/span&gt; + id);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            twoTmp.getCpu().addTask(id);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            &lt;span class=&quot;keyword&quot;&gt;while&lt;/span&gt; (&lt;span class=&quot;keyword&quot;&gt;true&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (IOException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            LOG.error(&lt;span class=&quot;string&quot;&gt;&quot;Test cpu failed.&quot;&lt;/span&gt;, e);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;            assertTrue(&lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;          &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;.start();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      Thread.sleep(&lt;span class=&quot;number&quot;&gt;60000l&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (Exception e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      LOG.error(&lt;span class=&quot;string&quot;&gt;&quot;Test cpu failed.&quot;&lt;/span&gt;, e);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      assertTrue(&lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;h2 id=&quot;Requirements&quot;&gt;&lt;a href=&quot;#Requirements&quot; class=&quot;headerlink&quot; title=&quot;Requirements&quot;&gt;&lt;/a&gt;Requirements&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Linux version (&amp;gt;= 2.6.18)&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;#Cgroup on JVM&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://travis-ci.org/haosdent/jcgroup&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;&lt;img src=&quot;https://travis-ci.org/hao
+    
+    </summary>
+    
+    
+      <category term="java" scheme="http://blog.haosdent.me/tags/java/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>惊鸿一瞥之RocksDB</title>
+    <link href="http://blog.haosdent.me/2013/11/24/%E6%83%8A%E9%B8%BF%E4%B8%80%E7%9E%A5%E4%B9%8BRocksDB/"/>
+    <id>http://blog.haosdent.me/2013/11/24/惊鸿一瞥之RocksDB/</id>
+    <published>2013-11-24T06:50:57.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;h1 id=&quot;RocksDB&quot;&gt;&lt;a href=&quot;#RocksDB&quot; class=&quot;headerlink&quot; title=&quot;RocksDB&quot;&gt;&lt;/a&gt;RocksDB&lt;/h1&gt;&lt;p&gt;FB最近新开源了一个新的KV数据库。之前还没公布时挺传言说相比HBase如何如何，不过现在公开后实际看下来，其实是个单机的KV数据库，FB又重复造了一个看起来比LevelDB更快的轮子。仅从视频来看，相比LevelDB可以更充分的利用多核CPU和SSD。比方说像Compaction等操作相较LevelDB是以多线程的方式完成，也不乏像延时完成Value++这些操作的小trick。而像在Scan中加入Bloom过滤器这些我不确定是不是RocksDB的开发者从HBase中借鉴来的。虽然看起来感觉应该是比LevelDB有较大的性能提升，但我充分感觉到了这明显就是一个重复的轮子，无法感受到做这个东西有啥巨大的意义。估计FB的童鞋也是有KPI压力的吧，哈哈。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;RocksDB&quot;&gt;&lt;a href=&quot;#RocksDB&quot; class=&quot;headerlink&quot; title=&quot;RocksDB&quot;&gt;&lt;/a&gt;RocksDB&lt;/h1&gt;&lt;p&gt;FB最近新开源了一个新的KV数据库。之前还没公布时挺传言说相比HBase如何如何，不过现在公开后实际
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Hadoop断电保护</title>
+    <link href="http://blog.haosdent.me/2013/11/24/Hadoop%E6%96%AD%E7%94%B5%E4%BF%9D%E6%8A%A4/"/>
+    <id>http://blog.haosdent.me/2013/11/24/Hadoop断电保护/</id>
+    <published>2013-11-24T05:56:32.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;断电保护的文章已投到InfoQ，欢迎移步阅读。&lt;a href=&quot;http://www.infoq.com/cn/articles/large-data-processing-ensuring-data-not-lost-when-power-off&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;链接&lt;/a&gt;&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;断电保护的文章已投到InfoQ，欢迎移步阅读。&lt;a href=&quot;http://www.infoq.com/cn/articles/large-data-processing-ensuring-data-not-lost-when-power-off&quot; target=&quot;_bl
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Wasp上手实例</title>
+    <link href="http://blog.haosdent.me/2013/09/10/Wasp%E4%B8%8A%E6%89%8B%E5%AE%9E%E4%BE%8B/"/>
+    <id>http://blog.haosdent.me/2013/09/10/Wasp上手实例/</id>
+    <published>2013-09-09T17:31:33.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;Wasp是阿里开源的类似MegaStore和F1的分布式关系型数据库，本文将简要介绍如何快速部署Wasp及使用JDBC的方式连接和操作Wasp&lt;/p&gt;
+&lt;h3 id=&quot;准备&quot;&gt;&lt;a href=&quot;#准备&quot; class=&quot;headerlink&quot; title=&quot;准备&quot;&gt;&lt;/a&gt;准备&lt;/h3&gt;&lt;p&gt;1.一个分布式部署的hbase集群，hbase已经启动&lt;/p&gt;
+&lt;p&gt;2.编译代码的机器上已经安装好Maven和JDK6&lt;/p&gt;
+&lt;h3 id=&quot;编译代码&quot;&gt;&lt;a href=&quot;#编译代码&quot; class=&quot;headerlink&quot; title=&quot;编译代码&quot;&gt;&lt;/a&gt;编译代码&lt;/h3&gt;&lt;p&gt;1.使用如下命令从github克隆最新代码&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;git &lt;span class=&quot;built_in&quot;&gt;clone&lt;/span&gt; https://github.com/alibaba/wasp.git&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;2.进入wasp目录，并确保当前目录为JDK6&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt; ~/workspace/java$: &lt;span class=&quot;built_in&quot;&gt;cd&lt;/span&gt; wasp/&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; ~/workspace/java/wasp$: java -version&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;java version &lt;span class=&quot;string&quot;&gt;&quot;1.6.0_51&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Java(TM) SE Runtime Environment (build 1.6.0_51-b11-457-11M4509)&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Java HotSpot(TM) 64-Bit Server VM (build 20.51-b01-457, mixed mode)&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;3.执行如下命令进行编译&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;mvn -DskipTests assembly:assembly&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;4.编译完成后，&lt;code&gt;target&lt;/code&gt;目录下的&lt;code&gt;wasp-0.10-bin.tar.gz&lt;/code&gt;就是我们稍后将会用的压缩包&lt;/p&gt;
+&lt;h3 id=&quot;配置&quot;&gt;&lt;a href=&quot;#配置&quot; class=&quot;headerlink&quot; title=&quot;配置&quot;&gt;&lt;/a&gt;配置&lt;/h3&gt;&lt;p&gt;1.将&lt;code&gt;wasp-0.10-bin.tar.gz&lt;/code&gt;上传到服务器指定的目录&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;~/workspace/java/wasp$: scp target/wasp-0.10-bin.tar.gz haosong.hhs@10.232.98.96:develop/soft/&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;2.登录服务器后，解压&lt;code&gt;wasp-0.10-bin.tar.gz&lt;/code&gt;并进入解压后的目录&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;~/develop/soft$: tar -zxvf wasp-0.10-bin.tar.gz&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;3.编辑&lt;code&gt;conf&lt;/code&gt;目录下的&lt;code&gt;wasp-site.xml&lt;/code&gt;，加上如下配置：&lt;/p&gt;
+&lt;figure class=&quot;highlight xml&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;20&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;21&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;22&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;23&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;24&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;25&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;26&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;27&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;28&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;29&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;30&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;31&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;32&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;33&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;34&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;35&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;36&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;37&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;38&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;39&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;40&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;41&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;42&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;43&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;44&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;45&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;46&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;47&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;48&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;49&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;50&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;51&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;52&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;53&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;54&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;55&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;56&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;57&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;58&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;59&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&amp;lt;?xml version=&quot;1.0&quot;?&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;configuration&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置wasp在zk中的父目录 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;zookeeper.wasp.znode.parent&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;/wasp&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置wasp使用的zk地址，该地址必须是依赖的存储引擎hbase使用的zk地址 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.zookeeper.quorum&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;10.232.98.94,10.232.98.72,10.232.98.40&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置wasp使用的zk端口号 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.zookeeper.property.clientPort&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;40060&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置hbase在zk中的父目录 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;zookeeper.znode.parent&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;/hbase-cdh4&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置hbase使用的zk地址 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;hbase.zookeeper.quorum&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;10.232.98.94,10.232.98.72,10.232.98.40&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置hbase使用的zk端口号 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;hbase.zookeeper.property.clientPort&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;40060&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 设置系统为分布式模式 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.cluster.distributed&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;true&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- master节点的服务端口 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.master.port&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;45050&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- master的web页面的服务端口 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.master.info.port&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;45051&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 数据服务节点的服务端口 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.fserver.port&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;45052&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;&amp;lt;!-- 数据服务节点的web页面的服务端口 --&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;wasp.fserver.info.port&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;name&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;tag&quot;&gt;&amp;lt;&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;45053&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;value&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;property&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;tag&quot;&gt;&amp;lt;/&lt;span class=&quot;name&quot;&gt;configuration&lt;/span&gt;&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;4.编辑&lt;code&gt;conf&lt;/code&gt;目录下的&lt;code&gt;wasp-env.sh&lt;/code&gt;，禁用Wasp自动启动zookeeper集群：&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; WASP_MANAGES_ZK=&lt;span class=&quot;literal&quot;&gt;false&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;5.编辑&lt;code&gt;conf&lt;/code&gt;目录下的&lt;code&gt;fservers&lt;/code&gt;，加上fservers的地址，需确保已经配置fservers的免认证登录&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;10.232.98.60&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10.232.98.61&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10.232.98.62&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h3 id=&quot;部署及启动&quot;&gt;&lt;a href=&quot;#部署及启动&quot; class=&quot;headerlink&quot; title=&quot;部署及启动&quot;&gt;&lt;/a&gt;部署及启动&lt;/h3&gt;&lt;p&gt;1.完成配置后，将&lt;code&gt;wasp-0.10&lt;/code&gt;同步到所有fservers服务器上，注意保持一样访问结构&lt;/p&gt;
+&lt;p&gt;2.使用如下命令启动Wasp&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;~/develop/soft$: ./wasp-0.10/bin/start-wasp.sh&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;3.启动Wasp Shell，使用&lt;code&gt;status&lt;/code&gt;命令检查是否成功启动，若出现如下的提示信息，则表明已成功启动Wasp：&lt;/p&gt;
+&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;~/develop/soft$: ./wasp-0.10/bin/wasp shell&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;wasp(main):061:0&amp;gt; status&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3 servers, 0 dead, 0.3333 average load&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;h3 id=&quot;使用JDBC操作数据库&quot;&gt;&lt;a href=&quot;#使用JDBC操作数据库&quot; class=&quot;headerlink&quot; title=&quot;使用JDBC操作数据库&quot;&gt;&lt;/a&gt;使用JDBC操作数据库&lt;/h3&gt;&lt;p&gt;经过前面那么多的准备步骤后，我们现在终于可以使用Wasp来存储我们的数据了。而Wasp提供了我们非常熟悉的JDBC连接方式，下面将介绍如何以JDBC连接和操作Wasp。&lt;/p&gt;
+&lt;p&gt;1.在代码中需配置Wasp的zookeeper相关信息&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;Properties props = &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Properties();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 配置wasp对应的zookeeper属性&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;props.setProperty(&lt;span class=&quot;string&quot;&gt;&quot;wasp.zookeeper.quorum&quot;&lt;/span&gt;,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;string&quot;&gt;&quot;10.232.98.94,10.232.98.72,10.232.98.40&quot;&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;props.setProperty(&lt;span class=&quot;string&quot;&gt;&quot;wasp.zookeeper.property.clientPort&quot;&lt;/span&gt;, &lt;span class=&quot;string&quot;&gt;&quot;40060&quot;&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;2.载入Wasp的JDBC驱动&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 载入wasp的jdbc和初始化相关对象&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;com.alibaba.wasp.jdbc.Driver.load();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Connection conn = DriverManager.getConnection(&lt;span class=&quot;string&quot;&gt;&quot;jdbc:wasp:&quot;&lt;/span&gt;, props);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;Statement stat = conn.createStatement();&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;OK，下面我们就可以通过直接执行SQL语句来操作Wasp，比如&lt;/p&gt;
+&lt;p&gt;1.创建表&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 创建user表，主键为user_id&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;String sql = &lt;span class=&quot;string&quot;&gt;&quot;CREATE TABLE user &amp;#123;REQUIRED INT64 user_id;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;           + &lt;span class=&quot;string&quot;&gt;&quot; REQUIRED STRING name; &amp;#125;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;           + &lt;span class=&quot;string&quot;&gt;&quot; PRIMARY KEY(user_id),&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;           + &lt;span class=&quot;string&quot;&gt;&quot; ENTITY GROUP ROOT,&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;           + &lt;span class=&quot;string&quot;&gt;&quot; ENTITY GROUP KEY(user_id);&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;stat.execute(sql);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;2.插入记录&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 插入id为1，name为&#39;test&#39;的记录&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sql = &lt;span class=&quot;string&quot;&gt;&quot;INSERT INTO user(user_id,name) values(1,&#39;test&#39;);&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;stat.execute(sql);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;3.查询记录&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 查询user_id为1的记录信息&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; * 最终控制台结果为：1,test&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt; */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;sql = &lt;span class=&quot;string&quot;&gt;&quot;SELECT * FROM user WHERE user_id=1;&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;ResultSet rs = stat.executeQuery(sql);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt; (; rs.next(); ) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  System.out.println(rs.getString(&lt;span class=&quot;string&quot;&gt;&quot;user_id&quot;&lt;/span&gt;) + &lt;span class=&quot;string&quot;&gt;&quot;,&quot;&lt;/span&gt; + rs.getString(&lt;span class=&quot;string&quot;&gt;&quot;name&quot;&lt;/span&gt;));&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;整个完整的代码为：&lt;br&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;16&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;17&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;18&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;19&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;20&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;21&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;22&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;23&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;24&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;25&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;26&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;27&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;28&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;29&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;30&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;31&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;32&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;33&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;34&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;35&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;36&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;37&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;38&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;39&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;40&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;41&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;42&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;43&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;44&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;45&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;46&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;47&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;48&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;49&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;50&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;51&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;52&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;53&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;54&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;55&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;56&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;57&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;58&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;59&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;60&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;61&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;62&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;63&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;64&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;65&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;66&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;67&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;package&lt;/span&gt; me.haosdent.test;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.sql.Connection;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.sql.DriverManager;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.sql.ResultSet;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.sql.SQLException;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.sql.Statement;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;import&lt;/span&gt; java.util.Properties;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;class&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;WaspExample&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(String[] args)&lt;/span&gt; &lt;/span&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    Properties props = &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Properties();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;     * 配置wasp对应的zookeeper属性&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;     */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    props.setProperty(&lt;span class=&quot;string&quot;&gt;&quot;wasp.zookeeper.quorum&quot;&lt;/span&gt;, &lt;span class=&quot;string&quot;&gt;&quot;10.232.98.94,10.232.98.72,10.232.98.40&quot;&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    props.setProperty(&lt;span class=&quot;string&quot;&gt;&quot;wasp.zookeeper.property.clientPort&quot;&lt;/span&gt;, &lt;span class=&quot;string&quot;&gt;&quot;40060&quot;&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;     * 载入wasp的jdbc&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;     */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    com.alibaba.wasp.jdbc.Driver.load();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    Connection conn = &lt;span class=&quot;keyword&quot;&gt;null&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    Statement stat = &lt;span class=&quot;keyword&quot;&gt;null&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      conn = DriverManager.getConnection(&lt;span class=&quot;string&quot;&gt;&quot;jdbc:wasp:&quot;&lt;/span&gt;, props);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      stat = conn.createStatement();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       * 创建user表，主键为user_id&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      String sql = &lt;span class=&quot;string&quot;&gt;&quot;CREATE TABLE user &amp;#123;REQUIRED INT64 user_id;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;                 + &lt;span class=&quot;string&quot;&gt;&quot; REQUIRED STRING name; &amp;#125;&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;                 + &lt;span class=&quot;string&quot;&gt;&quot; PRIMARY KEY(user_id),&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;                 + &lt;span class=&quot;string&quot;&gt;&quot; ENTITY GROUP ROOT,&quot;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;                 + &lt;span class=&quot;string&quot;&gt;&quot; ENTITY GROUP KEY(user_id);&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      stat.execute(sql);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      Thread.sleep(&lt;span class=&quot;number&quot;&gt;2000&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       * 插入id为1，name为&#39;test&#39;的记录&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      sql = &lt;span class=&quot;string&quot;&gt;&quot;INSERT INTO user(user_id,name) values(1,&#39;test&#39;);&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      stat.execute(sql);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;comment&quot;&gt;/*&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       * 查询user_id为1的记录信息&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       * 控制台结果：1,test&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;       */&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      sql = &lt;span class=&quot;string&quot;&gt;&quot;SELECT * FROM user WHERE user_id=1;&quot;&lt;/span&gt;;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      ResultSet rs = stat.executeQuery(sql);&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt; (; rs.next(); ) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        System.out.println(rs.getString(&lt;span class=&quot;string&quot;&gt;&quot;user_id&quot;&lt;/span&gt;) + &lt;span class=&quot;string&quot;&gt;&quot;,&quot;&lt;/span&gt; + rs.getString(&lt;span class=&quot;string&quot;&gt;&quot;name&quot;&lt;/span&gt;));&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (SQLException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      e.printStackTrace();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (InterruptedException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      e.printStackTrace();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125; &lt;span class=&quot;keyword&quot;&gt;finally&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        stat.close();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        conn.close();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125; &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt; (SQLException e) &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        e.printStackTrace();&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;写好代码导出为jar包后，使用如下命令运行程序，运行时需将之前解压&lt;code&gt;wasp-0.10-bin.tar.gz&lt;/code&gt;中&lt;code&gt;lib&lt;/code&gt;目录加到CLASSPATH中：&lt;br&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;java -cp /tmp/wasp-0.10/lib/*:/tmp/WaspExample.jar me.haosdent.test.WaspExample&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;控制台结果如下，说明已经成功插入记录到Wasp并查询到相关数据：&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1,test&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;而登录上服务器后，进入Wasp Shell，也可以查询到之前创建的user表信息&lt;br&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;15&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;## 显示所有表&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;wasp(main):062:0&amp;gt; show_tables&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;TABLE&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;user&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;1 row(s) &lt;span class=&quot;keyword&quot;&gt;in&lt;/span&gt; 0.0130 seconds&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&lt;span class=&quot;comment&quot;&gt;## 查看user表的结构&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;wasp(main):065:0&amp;gt; describe_table &lt;span class=&quot;string&quot;&gt;&#39;user&#39;&lt;/span&gt;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;+---------------------------+----------+----------+-----+-----+&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;| Field                     | Type     | REQUIRED | Key | EGK |&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;+---------------------------+----------+----------+-----+-----+&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;| user_id                   | INT64    | REQUIRED | PRI | EGK |&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;| name                      | STRING   | REQUIRED |     |     |&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;+---------------------------+----------+----------+-----+-----+&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;1 row(s) &lt;span class=&quot;keyword&quot;&gt;in&lt;/span&gt; 0.0050 seconds&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;上手示例到这里已经结束，关于Wasp更多有趣的功能你可以从此wiki的其他文章中更进一步了解。若操作过程中有任何疑问或需求，欢迎到此处提&lt;a href=&quot;https://github.com/alibaba/wasp/issues?state=open&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;issue&lt;/a&gt;。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Wasp是阿里开源的类似MegaStore和F1的分布式关系型数据库，本文将简要介绍如何快速部署Wasp及使用JDBC的方式连接和操作Wasp&lt;/p&gt;
+&lt;h3 id=&quot;准备&quot;&gt;&lt;a href=&quot;#准备&quot; class=&quot;headerlink&quot; title=&quot;准备&quot;&gt;&lt;/a&gt;准
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>CDH4 HDFS新特性</title>
+    <link href="http://blog.haosdent.me/2013/07/23/CDH4_HDFS%E6%96%B0%E7%89%B9%E6%80%A7/"/>
+    <id>http://blog.haosdent.me/2013/07/23/CDH4_HDFS新特性/</id>
+    <published>2013-07-23T07:31:08.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;ol&gt;
+&lt;li&gt;NameNode HA&lt;/li&gt;
+&lt;li&gt;NameNode Federation&lt;/li&gt;
+&lt;li&gt;新的HDFS append实现 &lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-265&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS-265&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;WebHDFS HDFS的RESTful接口&lt;/li&gt;
+&lt;li&gt;支持符号链接 &lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-245&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS-245&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Domain Socket 当DFSClient和目标DataNode处于同一台机器上时，直接打开文件进行读取。&lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-347&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS-347&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;去除本地URI的DNS解析 &lt;a href=&quot;https://issues.apache.org/jira/browse/HADOOP-9150&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HADOOP-9150&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;FUSE 将HDFS挂载到本地 &lt;a href=&quot;http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH4/latest/CDH4-Security-Guide/cdh4sg_topic_12.html#topic_12_unique_2&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;FUSE&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;在存放HDFS的副本时，可设置考虑上所剩磁盘空间容量这个因素 &lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-1804&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS-1804&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;改善NameNode 健康报告的性能问题 &lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-3990&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS-3990&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;HDFS文件加密传输，Shuffle和Web UI可使用HTTPS。&lt;a href=&quot;http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH4/latest/CDH4-Security-Guide/cdh4sg_topic_14.html#topic_14_unique_2&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;HDFS Encrypted Transport&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;ol&gt;
+&lt;li&gt;NameNode HA&lt;/li&gt;
+&lt;li&gt;NameNode Federation&lt;/li&gt;
+&lt;li&gt;新的HDFS append实现 &lt;a href=&quot;https://issues.apache.org/jira/browse/HDFS-265&quot; target=&quot;
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Apache Flume介绍</title>
+    <link href="http://blog.haosdent.me/2013/06/19/Apache-Flume%E4%BB%8B%E7%BB%8D/"/>
+    <id>http://blog.haosdent.me/2013/06/19/Apache-Flume介绍/</id>
+    <published>2013-06-19T06:11:57.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;之前折腾Apache Flume时做的一个slide，Apache Flume是一个开源的分布式日志收集系统，在可靠性和可拓展性方面实现的非常好，介绍如下：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe allowfullscreen frameborder=&quot;0&quot; height=&quot;486&quot; marginheight=&quot;0&quot; marginwidth=&quot;0&quot; mozallowfullscreen=&quot;&quot; scrolling=&quot;no&quot; src=&quot;http://www.slideshare.net/slideshow/embed_code/23178423&quot; style=&quot;border-width: 1px 1px 0; border: 1px solid #CCC; margin-bottom: 5px;&quot; webkitallowfullscreen=&quot;&quot; width=&quot;597&quot;&gt; &lt;/iframe&gt; &lt;/div&gt;</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;之前折腾Apache Flume时做的一个slide，Apache Flume是一个开源的分布式日志收集系统，在可靠性和可拓展性方面实现的非常好，介绍如下：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe allowfullscre
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>About</title>
+    <link href="http://blog.haosdent.me/2013/06/01/About/"/>
+    <id>http://blog.haosdent.me/2013/06/01/About/</id>
+    <published>2013-06-01T08:40:59.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;h1 id=&quot;About-me&quot;&gt;&lt;a href=&quot;#About-me&quot; class=&quot;headerlink&quot; title=&quot;About me&quot;&gt;&lt;/a&gt;About me&lt;/h1&gt;&lt;p&gt;&lt;img src=&quot;/images/haosdent.jpg&quot; alt=&quot;haosdent&quot; style=&quot;width: 200px;&quot;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;mailto:haosdent@gmail.com&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Email&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://raw.github.com/haosdent/resume/master/resume_english.pdf&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Resume&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/haosdent&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Github&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.linkedin.com/profile/view?id=129687654&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Linkedin&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://issues.apache.org/jira/secure/ViewProfile.jspa?name=haosdent@gmail.com&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Apache JIRA&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;About-me&quot;&gt;&lt;a href=&quot;#About-me&quot; class=&quot;headerlink&quot; title=&quot;About me&quot;&gt;&lt;/a&gt;About me&lt;/h1&gt;&lt;p&gt;&lt;img src=&quot;/images/haosdent.jpg&quot; alt=&quot;haosdent&quot;
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>几个开源的日志系统</title>
+    <link href="http://blog.haosdent.me/2013/05/22/%E5%87%A0%E4%B8%AA%E5%BC%80%E6%BA%90%E7%9A%84%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9F/"/>
+    <id>http://blog.haosdent.me/2013/05/22/几个开源的日志系统/</id>
+    <published>2013-05-22T03:26:28.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;最近在看几个日志系统，写下以备忘。感觉挺多都设计得挺类似的，比方说合并小文件以减少对文件系统的IO，或者说end-to-end等方式实现高可靠性等。当然也有一些实现细节上的不同与特殊之处。简单记录如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Chukwa&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;agent 收集数据&lt;/li&gt;
+&lt;li&gt;adaptor 预处理数据&lt;/li&gt;
+&lt;li&gt;collector 采集合并数据 agent会选择一个空闲的collector&lt;/li&gt;
+&lt;li&gt;demux 数据处理&lt;/li&gt;
+&lt;li&gt;archive 文件合并成Sequence File，去除重复内容&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Kafka消息发布订阅系统，消息按topic组织，topic再按partition分区，使用zookeeper做负载均衡；&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;无内存缓存；&lt;/li&gt;
+&lt;li&gt;顺序append数据，积累到一定程度再删除；&lt;/li&gt;
+&lt;li&gt;消息投递为客户端主动pull；&lt;/li&gt;
+&lt;li&gt;broker 使用zero-copy(DMA)提高速率&lt;/li&gt;
+&lt;li&gt;producer 两种接口，向broker发布，通过zookeeper注册listener及获取所有broker&lt;/li&gt;
+&lt;li&gt;consumer 两种接口，将消息写向中央存储&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Scribe当后端存储系统crash时，scribe将数据写到本地磁盘，待正常后重新加载&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;agent 使用thrift client发送数据&lt;/li&gt;
+&lt;li&gt;collector 根据配置文件，将不同的topic发送到不同的对象&lt;/li&gt;
+&lt;li&gt;store 支持的类型丰富&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Timetunnel使用zookeeper负责broker和client的状态同步&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;使用thrift做通讯层&lt;/li&gt;
+&lt;li&gt;client 安全认证，发布，认证的API&lt;/li&gt;
+&lt;li&gt;router 访问入口；负责路由，安全认证，负载均衡；通过安全认证后，使client和broker建立正确的连接&lt;/li&gt;
+&lt;li&gt;broker 负责消息的存储转发&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Flume agent三种级别的可靠性：end-to-end, Store on failure(类似Scribe), Best effort&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;agent, collector和storage均可水平拓展&lt;/li&gt;
+&lt;li&gt;agent和collector由master统一管理&lt;/li&gt;
+&lt;li&gt;agent 由source和sink组成，将数据源的数据发送给collector&lt;/li&gt;
+&lt;li&gt;collector 由source和sink组成，汇总agent的数据，存到storage&lt;/li&gt;
+&lt;li&gt;storage&lt;/li&gt;
+&lt;li&gt;master 管理协调agent和collector的配置等信息；分单点和多点模式，多点模式容错性好&lt;div&gt;&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;总的感觉是，Kafka实现得很好，不过可能因为是Linkedin自己根据自己的一些场景来弄的。所以通用性可能不如Flume好。Flume现在应该是最通用和成熟的。目前这几个都是可以将日志记录到HDFS上，以便于使用Hadoop等进行进一步分析处理。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;最近在看几个日志系统，写下以备忘。感觉挺多都设计得挺类似的，比方说合并小文件以减少对文件系统的IO，或者说end-to-end等方式实现高可靠性等。当然也有一些实现细节上的不同与特殊之处。简单记录如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Chukwa&lt;/p&gt;
+&lt;ul&gt;
+&lt;li
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>华农xxx的时候上去吹水用的幻灯片</title>
+    <link href="http://blog.haosdent.me/2013/04/13/%E5%8D%8E%E5%86%9Cxxx%E7%9A%84%E6%97%B6%E5%80%99%E4%B8%8A%E5%8E%BB%E5%90%B9%E6%B0%B4%E7%94%A8%E7%9A%84%E5%B9%BB%E7%81%AF%E7%89%87/"/>
+    <id>http://blog.haosdent.me/2013/04/13/华农xxx的时候上去吹水用的幻灯片/</id>
+    <published>2013-04-12T18:52:56.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;这是大三上给人介绍Node.js所用的幻灯片，放到github上了。&lt;/p&gt;
+&lt;p&gt;大家还是直接到这里到这里看吧：&lt;a href=&quot;http://haosdent.github.io/NodeJsSlide/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;http://haosdent.github.io/NodeJsSlide/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;其实俺有机会还再想讲虚拟化和Clojure的, 因为这是俺大学生涯中的精髓啊, 不过不知道有没有机会让我来讲了…..&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;这是大三上给人介绍Node.js所用的幻灯片，放到github上了。&lt;/p&gt;
+&lt;p&gt;大家还是直接到这里到这里看吧：&lt;a href=&quot;http://haosdent.github.io/NodeJsSlide/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>大三分享Hadoop所用的幻灯片</title>
+    <link href="http://blog.haosdent.me/2013/04/13/%E5%A4%A7%E4%B8%89%E5%88%86%E4%BA%ABHadoop%E6%89%80%E7%94%A8%E7%9A%84%E5%B9%BB%E7%81%AF%E7%89%87/"/>
+    <id>http://blog.haosdent.me/2013/04/13/大三分享Hadoop所用的幻灯片/</id>
+    <published>2013-04-12T18:38:47.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;大三上学期曾给一些童鞋介绍过Hadoop：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe frameborder=&quot;0&quot; height=&quot;400&quot; src=&quot;http://prezi.com/embed/x41oogytsdkc/?bgcolor=ffffff&amp;amp;lock_to_path=0&amp;amp;autoplay=0&amp;amp;autohide_ctrls=0&amp;amp;features=undefined&amp;amp;disabled_features=undefined&quot; width=&quot;550&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;大三上学期曾给一些童鞋介绍过Hadoop：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe frameborder=&quot;0&quot; height=&quot;400&quot; src=&quot;http://prezi.com/embed/x41oogytsdkc/
+    
+    </summary>
+    
+    
+      <category term="Hadoop" scheme="http://blog.haosdent.me/tags/Hadoop/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>大二分享Linux所用的幻灯片</title>
+    <link href="http://blog.haosdent.me/2013/04/13/%E5%A4%A7%E4%BA%8C%E5%88%86%E4%BA%ABLinux%E6%89%80%E7%94%A8%E7%9A%84%E5%B9%BB%E7%81%AF%E7%89%87/"/>
+    <id>http://blog.haosdent.me/2013/04/13/大二分享Linux所用的幻灯片/</id>
+    <published>2013-04-12T18:32:37.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe src=&quot;http://prezi.com/embed/njy9rnnprjv-/?bgcolor=ffffff&amp;amp;lock_to_path=0&amp;amp;autoplay=0&amp;amp;autohide_ctrls=0&amp;amp;features=undefined&amp;amp;disabled_features=undefined&quot; width=&quot;550&quot; height=&quot;400&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;</content>
+    
+    <summary type="html">
+    
+      &lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe src=&quot;http://prezi.com/embed/njy9rnnprjv-/?bgcolor=ffffff&amp;amp;lock_to_path=0&amp;amp;autoplay=0&amp;amp;auto
+    
+    </summary>
+    
+    
+      <category term="Linux" scheme="http://blog.haosdent.me/tags/Linux/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>岁末总结</title>
+    <link href="http://blog.haosdent.me/2013/04/13/%E5%B2%81%E6%9C%AB%E6%80%BB%E7%BB%93/"/>
+    <id>http://blog.haosdent.me/2013/04/13/岁末总结/</id>
+    <published>2013-04-12T18:30:41.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;好久没写博客了，一方面是因为懒了，一方面是因为今年太tmd忙了。好吧，其实还是我太懒了。&lt;br&gt;过去一年，间或着各种杯洗具，大悲，小悲，小喜，大悲，小悲，大悲。好像就这么过来了。&lt;br&gt;往而不可追者，年也，去而不可见者，亲也；痛彻心扉后，终于明白勿负斯人。人面不知何处去，桃花依旧笑春风；纷飞四散后，终于明白天涯若比邻。不经一事，不长一智。&lt;/p&gt;
+&lt;p&gt;望各位亲人新年身体健康，万事顺意，各位机油新年新气象，更上一层楼。&lt;/p&gt;
+&lt;p&gt;黄浩松 谨祝&lt;/p&gt;
+&lt;p&gt;附淫诗一首：&lt;/p&gt;
+&lt;p&gt;是非成败转头空，青山依旧在，几度夕阳红。一壶浊酒喜相逢，古今多少事，皆付笑谈中。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;好久没写博客了，一方面是因为懒了，一方面是因为今年太tmd忙了。好吧，其实还是我太懒了。&lt;br&gt;过去一年，间或着各种杯洗具，大悲，小悲，小喜，大悲，小悲，大悲。好像就这么过来了。&lt;br&gt;往而不可追者，年也，去而不可见者，亲也；痛彻心扉后，终于明白勿负斯人。人面不知何处去，桃
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>(译)最流行的10个 Javascript MVC 框架之对比</title>
+    <link href="http://blog.haosdent.me/2012/09/27/(%E8%AF%91)%E6%9C%80%E6%B5%81%E8%A1%8C%E7%9A%8410%E4%B8%AA-Javascript-MVC-%E6%A1%86%E6%9E%B6%E4%B9%8B%E5%AF%B9%E6%AF%94/"/>
+    <id>http://blog.haosdent.me/2012/09/27/(译)最流行的10个-Javascript-MVC-框架之对比/</id>
+    <published>2012-09-27T06:18:33.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;在过去的数月中，我一直在寻找最完美的javascript MVC框架。出于对一个拥有恰当抽象和较完整功能的js框架的迫切需求，我亲手尝试了下面列出的所有javascript mvc框架。在这里，我列出一份对这些框架的简要介绍和对比。同时，我将会在结尾处告诉大家我最终的选择。&lt;/p&gt;
+&lt;p&gt;需要提前特别指出的是，下面列出的这四个特性对我来说非常重要：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;UI绑定&lt;/strong&gt; - 这里我并不仅仅只是指前端模板级别的绑定，我更指当model层改变的时候，view层能随之自动更新。如果你曾经使用过支持UI绑定的框架（比方说Flex），你对这点将感到无法割舍。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;组合型的Views&lt;/strong&gt; - 像大多数开发者一样，我喜欢编写模块化、可重用的代码。因为如果这样的话，我就能通过组合的方式来构建view层（尤其是指在写前端模板部分的代码的时候）。当然这需要有一个拥有丰富组件体系的框架来作为支撑。将会有一个与这点相关的例子，是一个分页的小插件，向大家更好的说明这点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Web表现层&lt;/strong&gt; - 我们是在写web，最不想做的就是编写传统桌面UI组件之类的事。正因为如此，作为一个web框架，就不当由自己来实现只属于自己的一套布局管理。HTML和CSS本身就是表现布局和展示样式的最好方式，本来就应该用他们才对。作为一个web框架，必须以这点作为基本原则。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;与其他框架良好兼容&lt;/strong&gt; - 众所周知，jQuery漂亮得令人惊叹。我并不想要一个本身就已经内置包含了jQuery的框架，我更想要一个通过外部引用来链接jQuery的框架。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&quot;对比&quot;&gt;&lt;a href=&quot;#对比&quot; class=&quot;headerlink&quot; title=&quot;对比&quot;&gt;&lt;/a&gt;对比&lt;/h2&gt;&lt;p&gt;这里给出了一个表格，可以清晰的看到各个框架对上面四个特性的支持情况。你可以通过点击框架的名字来查看更详细的信息。&lt;/p&gt;
+&lt;table style=&quot;background-color: #e8ffe3; border-collapse: collapse; border-spacing: 0px;&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;th style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;框架&lt;/th&gt;&lt;th style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;UI绑定&lt;/th&gt;&lt;th style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;组合型Views&lt;/th&gt;&lt;th style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;Web表现层&lt;/th&gt;&lt;th style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;与其他框架的兼容性&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#backbone&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Backbone.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#sproutcore&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;SproutCore 1.x&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#sammy&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Sammy.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#spine&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Spine.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#cappuccino&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Cappuccino&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#knockout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Knockout.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#javascript-mvc&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Javascript MVC&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#gwt&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Google Web Toolkit&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#closure&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Google Closure&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#ember&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Ember.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#angular&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Angular.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); padding: 6px;&quot;&gt;&lt;a href=&quot;http://codebrief.com/2012/01/the-top-10-javascript-mvc-frameworks-reviewed/#batman&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Batman.js&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;fail&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: red; font-weight: bold; padding: 6px;&quot;&gt;✗&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;td class=&quot;pass&quot; style=&quot;border-collapse: collapse; border: 1px solid rgb(180, 229, 172); color: green; font-weight: bold; padding: 6px;&quot;&gt;✓&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;
+
+&lt;h3 id=&quot;1-Backbone-js&quot;&gt;&lt;a href=&quot;#1-Backbone-js&quot; class=&quot;headerlink&quot; title=&quot;1. Backbone.js&quot;&gt;&lt;/a&gt;1. Backbone.js&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;http://documentcloud.github.com/backbone/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Backbone.js&lt;/a&gt;&amp;nbsp;是最流行的js mvc框架。如果没听过它，你将寸步难行。因为有大量的开发者和应用正在使用着它。它也是我一个尝试使用的框架，我用它来为&lt;a href=&quot;http://grouptalent.com/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;GroupTalent&lt;/a&gt;构建一些内部的管理功能。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 强大的社区支持和良好的发展趋势。 Underscore.js（是backbone.js内部实现所极度依赖的js框架） 同样也是一个非常优秀的框架。&lt;br&gt;&lt;strong&gt;确点：&lt;/strong&gt; 需要更良好的封装，同时很多迫切需要的功能暂未实现。整个框架相当轻量简单以至于它必须通过引用其他外部的库来实现未实现的功能。如果一个项目足够复杂的话，Backbone就显得有些力不从心了。&lt;/p&gt;
+&lt;h3 id=&quot;2-SproutCore-1-x&quot;&gt;&lt;a href=&quot;#2-SproutCore-1-x&quot; class=&quot;headerlink&quot; title=&quot;2. SproutCore 1.x&quot;&gt;&lt;/a&gt;2. SproutCore 1.x&lt;/h3&gt;&lt;p&gt;尽管名字看上去挺讨人厌，但实际上它的设计非常优秀。同时，它也是体积最大的几个框架之一。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 支持UI绑定，良好的社区支持，大量的功能特性。&lt;br&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 侵入性过大。对于不需要的功能，无法定制。强迫使用原生应用似的规范。对于不直接使用html来作为布局管理的框架，我一向不感冒。&lt;/p&gt;
+&lt;h3 id=&quot;3-Sammy-js&quot;&gt;&lt;a href=&quot;#3-Sammy-js&quot; class=&quot;headerlink&quot; title=&quot;3. Sammy.js&quot;&gt;&lt;/a&gt;3. Sammy.js&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;http://sammyjs.org/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Sammy.js&lt;/a&gt;是一个小框架，在我使用它的时候，经常遇到各种小状况。它太简单了，很多功能都没有实现。它最核心的功能就是提供一个route层以便应用通过AJAX来加载数据。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 易于上手，很容易整合到现有的服务端应用。&lt;br&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 太简单了，不适合大型的应用程序。&lt;/p&gt;
+&lt;h3 id=&quot;4-Spine-js&quot;&gt;&lt;a href=&quot;#4-Spine-js&quot; class=&quot;headerlink&quot; title=&quot;4. Spine.js&quot;&gt;&lt;/a&gt;4. Spine.js&lt;/h3&gt;&lt;p&gt;由名字来看，&lt;a href=&quot;http://spinejs.com/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Spine.js&lt;/a&gt;&amp;nbsp;应该深受backbone影响。像backbone一样，它非常轻量而且有着相似的model层。&lt;a href=&quot;http://spinejs.com/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Spine.js&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 轻量而且文档齐全。&lt;br&gt;&lt;strong&gt;缺点：&lt;/strong&gt;其设计本质上具有缺陷。Spine核心观念之一就是“是异步的UI。用一句话来说，就是UI应该都是非阻塞的。”我在过去曾做过一个对实时和非阻塞要求非常高的应用，我可以负责任地说这是完全不现实的，除非后台有一些类似&lt;a href=&quot;http://en.wikipedia.org/wiki/Operational_transformation&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;operational transformation&lt;/a&gt;（Google Wave所设计的一个并发控制框架就实现了&lt;a href=&quot;http://en.wikipedia.org/wiki/Operational_transformation&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;operational transformation&lt;/a&gt;）的东西。&lt;/p&gt;
+&lt;h3 id=&quot;5-Cappuccino&quot;&gt;&lt;a href=&quot;#5-Cappuccino&quot; class=&quot;headerlink&quot; title=&quot;5. Cappuccino&quot;&gt;&lt;/a&gt;5. Cappuccino&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;http://cappuccino.org/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Cappuccino&lt;/a&gt;是一个非常特别的框架，特别在它拥有自己的语言Objective-J。Cappuccino想要在浏览器端模拟Cocoa。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;设计缜密，良好的社区支持，强大的继承模型。&lt;br&gt;&lt;strong&gt;缺点：&lt;/strong&gt;假如让我选择使用javascript来模拟其他任何一种语言的话，Objective-C或许是我最不可能作出的决定。这是一个来自于iOS开发者的观点。 我无法赞同在浏览器中运行Object-J。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在过去的数月中，我一直在寻找最完美的javascript MVC框架。出于对一个拥有恰当抽象和较完整功能的js框架的迫切需求，我亲手尝试了下面列出的所有javascript mvc框架。在这里，我列出一份对这些框架的简要介绍和对比。同时，我将会在结尾处告诉大家我最终的选择。
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>给HCI新手的培训资料（工具篇）</title>
+    <link href="http://blog.haosdent.me/2012/08/27/%E7%BB%99HCI%E6%96%B0%E6%89%8B%E7%9A%84%E5%9F%B9%E8%AE%AD%E8%B5%84%E6%96%99%EF%BC%88%E5%B7%A5%E5%85%B7%E7%AF%87%EF%BC%89/"/>
+    <id>http://blog.haosdent.me/2012/08/27/给HCI新手的培训资料（工具篇）/</id>
+    <published>2012-08-27T02:23:35.000Z</published>
+    <updated>2016-04-24T09:28:01.000Z</updated>
+    
+    <content type="html">&lt;p&gt;好吧，有些事情终归要做的，不过不知道能坚持多久。本来今天想通过YY给一些童鞋讲的，但好像太多人去编程马拉松了，而且YY一定要开个windows，这点让我很大意见。所以自己第一次录视频，感觉其实那个软件挺好的，但好像我表达能力还是太烂了，平常太少和人沟通了，特别这几个月来了这里，大家经常说鸟语，我就更少说话了，表达能力不行，希望接下来几次能逐步改善。。。。好像准备的几个笑话最终都紧张到忘了讲。。。。而且录完之后发现忘记讲下chrome的调试工具如何使用，只能下次再补上了。&lt;/p&gt;
+&lt;p&gt;此次培训只是试下软件的效果，应该在本学期结束前我会继续瞎扯下Hadoop的生态圈、虚拟化技术、数据挖掘，其中有些部分要拆成两次或三次来讲。总之，这次只是试下这个软件效果如何，内容的质量只是乱吹水而已，各位HCI的童鞋见谅。&lt;/p&gt;
+&lt;p&gt;视频如下：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;embed align=&quot;middle&quot; allowfullscreen=&quot;true&quot; allowscriptaccess=&quot;always&quot; height=&quot;400&quot; quality=&quot;high&quot; src=&quot;http://player.youku.com/player.php/sid/XNDQzNjY0MjA0/v.swf&quot; type=&quot;application/x-shockwave-flash&quot; width=&quot;480&quot;&gt;&lt;/div&gt;
+
+&lt;p&gt;幻灯片如下：&lt;/p&gt;
+&lt;div style=&quot;text-align: center;&quot;&gt;&lt;iframe allowfullscreen=&quot;allowfullscreen&quot; frameborder=&quot;0&quot; height=&quot;356&quot; marginheight=&quot;0&quot; marginwidth=&quot;0&quot; scrolling=&quot;no&quot; src=&quot;http://www.slideshare.net/slideshow/embed_code/14070670&quot; style=&quot;border-width: 1px 1px 0; border: 1px solid #CCC; margin-bottom: 5px;&quot; width=&quot;427&quot;&gt; &lt;/iframe&gt;&lt;/div&gt;</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;好吧，有些事情终归要做的，不过不知道能坚持多久。本来今天想通过YY给一些童鞋讲的，但好像太多人去编程马拉松了，而且YY一定要开个windows，这点让我很大意见。所以自己第一次录视频，感觉其实那个软件挺好的，但好像我表达能力还是太烂了，平常太少和人沟通了，特别这几个月来了这
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>

@@ -1,0 +1,765 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>archive_b | haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/archives/2013/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper">
+<h2 class="archive-title">2013</h2>
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-11-24T06:50:57.000Z"><a href="/2013/11/24/惊鸿一瞥之RocksDB/">Nov 24 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/11/24/惊鸿一瞥之RocksDB/">惊鸿一瞥之RocksDB</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h1 id="RocksDB"><a href="#RocksDB" class="headerlink" title="RocksDB"></a>RocksDB</h1><p>FB最近新开源了一个新的KV数据库。之前还没公布时挺传言说相比HBase如何如何，不过现在公开后实际看下来，其实是个单机的KV数据库，FB又重复造了一个看起来比LevelDB更快的轮子。仅从视频来看，相比LevelDB可以更充分的利用多核CPU和SSD。比方说像Compaction等操作相较LevelDB是以多线程的方式完成，也不乏像延时完成Value++这些操作的小trick。而像在Scan中加入Bloom过滤器这些我不确定是不是RocksDB的开发者从HBase中借鉴来的。虽然看起来感觉应该是比LevelDB有较大的性能提升，但我充分感觉到了这明显就是一个重复的轮子，无法感受到做这个东西有啥巨大的意义。估计FB的童鞋也是有KPI压力的吧，哈哈。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-11-24T05:56:32.000Z"><a href="/2013/11/24/Hadoop断电保护/">Nov 24 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/11/24/Hadoop断电保护/">Hadoop断电保护</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>断电保护的文章已投到InfoQ，欢迎移步阅读。<a href="http://www.infoq.com/cn/articles/large-data-processing-ensuring-data-not-lost-when-power-off" target="_blank" rel="external">链接</a></p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-09-09T17:31:33.000Z"><a href="/2013/09/10/Wasp上手实例/">Sep 10 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/09/10/Wasp上手实例/">Wasp上手实例</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Wasp是阿里开源的类似MegaStore和F1的分布式关系型数据库，本文将简要介绍如何快速部署Wasp及使用JDBC的方式连接和操作Wasp</p>
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>1.一个分布式部署的hbase集群，hbase已经启动</p>
+<p>2.编译代码的机器上已经安装好Maven和JDK6</p>
+<h3 id="编译代码"><a href="#编译代码" class="headerlink" title="编译代码"></a>编译代码</h3><p>1.使用如下命令从github克隆最新代码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/alibaba/wasp.git</span><br></pre></td></tr></table></figure>
+<p>2.进入wasp目录，并确保当前目录为JDK6</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> ~/workspace/java$: <span class="built_in">cd</span> wasp/</span><br><span class="line"> ~/workspace/java/wasp$: java -version</span><br><span class="line">java version <span class="string">"1.6.0_51"</span></span><br><span class="line">Java(TM) SE Runtime Environment (build 1.6.0_51-b11-457-11M4509)</span><br><span class="line">Java HotSpot(TM) 64-Bit Server VM (build 20.51-b01-457, mixed mode)</span><br></pre></td></tr></table></figure>
+<p>3.执行如下命令进行编译</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn -DskipTests assembly:assembly</span><br></pre></td></tr></table></figure>
+<p>4.编译完成后，<code>target</code>目录下的<code>wasp-0.10-bin.tar.gz</code>就是我们稍后将会用的压缩包</p>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>1.将<code>wasp-0.10-bin.tar.gz</code>上传到服务器指定的目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/workspace/java/wasp$: scp target/wasp-0.10-bin.tar.gz haosong.hhs@10.232.98.96:develop/soft/</span><br></pre></td></tr></table></figure>
+<p>2.登录服务器后，解压<code>wasp-0.10-bin.tar.gz</code>并进入解压后的目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: tar -zxvf wasp-0.10-bin.tar.gz</span><br></pre></td></tr></table></figure>
+<p>3.编辑<code>conf</code>目录下的<code>wasp-site.xml</code>，加上如下配置：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0"?&gt;</span><br><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;</span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp在zk中的父目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>zookeeper.wasp.znode.parent<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/wasp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp使用的zk地址，该地址必须是依赖的存储引擎hbase使用的zk地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>10.232.98.94,10.232.98.72,10.232.98.40<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置wasp使用的zk端口号 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.zookeeper.property.clientPort<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>40060<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase在zk中的父目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>zookeeper.znode.parent<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/hbase-cdh4<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase使用的zk地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>10.232.98.94,10.232.98.72,10.232.98.40<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置hbase使用的zk端口号 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.clientPort<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>40060<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 设置系统为分布式模式 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- master节点的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.master.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45050<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- master的web页面的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.master.info.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45051<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 数据服务节点的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.fserver.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45052<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 数据服务节点的web页面的服务端口 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>wasp.fserver.info.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>45053<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>4.编辑<code>conf</code>目录下的<code>wasp-env.sh</code>，禁用Wasp自动启动zookeeper集群：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> WASP_MANAGES_ZK=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>5.编辑<code>conf</code>目录下的<code>fservers</code>，加上fservers的地址，需确保已经配置fservers的免认证登录<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">10.232.98.60</span><br><span class="line">10.232.98.61</span><br><span class="line">10.232.98.62</span><br></pre></td></tr></table></figure></p>
+<h3 id="部署及启动"><a href="#部署及启动" class="headerlink" title="部署及启动"></a>部署及启动</h3><p>1.完成配置后，将<code>wasp-0.10</code>同步到所有fservers服务器上，注意保持一样访问结构</p>
+<p>2.使用如下命令启动Wasp</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: ./wasp-0.10/bin/start-wasp.sh</span><br></pre></td></tr></table></figure>
+<p>3.启动Wasp Shell，使用<code>status</code>命令检查是否成功启动，若出现如下的提示信息，则表明已成功启动Wasp：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">~/develop/soft$: ./wasp-0.10/bin/wasp shell</span><br><span class="line">wasp(main):061:0&gt; status</span><br><span class="line">3 servers, 0 dead, 0.3333 average load</span><br></pre></td></tr></table></figure>
+<h3 id="使用JDBC操作数据库"><a href="#使用JDBC操作数据库" class="headerlink" title="使用JDBC操作数据库"></a>使用JDBC操作数据库</h3><p>经过前面那么多的准备步骤后，我们现在终于可以使用Wasp来存储我们的数据了。而Wasp提供了我们非常熟悉的JDBC连接方式，下面将介绍如何以JDBC连接和操作Wasp。</p>
+<p>1.在代码中需配置Wasp的zookeeper相关信息<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line"><span class="comment">/*</span><br><span class="line"> * 配置wasp对应的zookeeper属性</span><br><span class="line"> */</span></span><br><span class="line">props.setProperty(<span class="string">"wasp.zookeeper.quorum"</span>,</span><br><span class="line">    <span class="string">"10.232.98.94,10.232.98.72,10.232.98.40"</span>);</span><br><span class="line">props.setProperty(<span class="string">"wasp.zookeeper.property.clientPort"</span>, <span class="string">"40060"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>2.载入Wasp的JDBC驱动<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 载入wasp的jdbc和初始化相关对象</span><br><span class="line"> */</span></span><br><span class="line">com.alibaba.wasp.jdbc.Driver.load();</span><br><span class="line">Connection conn = DriverManager.getConnection(<span class="string">"jdbc:wasp:"</span>, props);</span><br><span class="line">Statement stat = conn.createStatement();</span><br></pre></td></tr></table></figure></p>
+<p>OK，下面我们就可以通过直接执行SQL语句来操作Wasp，比如</p>
+<p>1.创建表<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 创建user表，主键为user_id</span><br><span class="line"> */</span></span><br><span class="line">String sql = <span class="string">"CREATE TABLE user &#123;REQUIRED INT64 user_id;"</span></span><br><span class="line">           + <span class="string">" REQUIRED STRING name; &#125;"</span></span><br><span class="line">           + <span class="string">" PRIMARY KEY(user_id),"</span></span><br><span class="line">           + <span class="string">" ENTITY GROUP ROOT,"</span></span><br><span class="line">           + <span class="string">" ENTITY GROUP KEY(user_id);"</span>;</span><br><span class="line">stat.execute(sql);</span><br></pre></td></tr></table></figure></p>
+<p>2.插入记录<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 插入id为1，name为'test'的记录</span><br><span class="line"> */</span></span><br><span class="line">sql = <span class="string">"INSERT INTO user(user_id,name) values(1,'test');"</span>;</span><br><span class="line">stat.execute(sql);</span><br></pre></td></tr></table></figure></p>
+<p>3.查询记录<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * 查询user_id为1的记录信息</span><br><span class="line"> * 最终控制台结果为：1,test</span><br><span class="line"> */</span></span><br><span class="line">sql = <span class="string">"SELECT * FROM user WHERE user_id=1;"</span>;</span><br><span class="line">ResultSet rs = stat.executeQuery(sql);</span><br><span class="line"><span class="keyword">for</span> (; rs.next(); ) &#123;</span><br><span class="line">  System.out.println(rs.getString(<span class="string">"user_id"</span>) + <span class="string">","</span> + rs.getString(<span class="string">"name"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>整个完整的代码为：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.haosdent.test;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.sql.Connection;</span><br><span class="line"><span class="keyword">import</span> java.sql.DriverManager;</span><br><span class="line"><span class="keyword">import</span> java.sql.ResultSet;</span><br><span class="line"><span class="keyword">import</span> java.sql.SQLException;</span><br><span class="line"><span class="keyword">import</span> java.sql.Statement;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WaspExample</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line">    <span class="comment">/*</span><br><span class="line">     * 配置wasp对应的zookeeper属性</span><br><span class="line">     */</span></span><br><span class="line">    props.setProperty(<span class="string">"wasp.zookeeper.quorum"</span>, <span class="string">"10.232.98.94,10.232.98.72,10.232.98.40"</span>);</span><br><span class="line">    props.setProperty(<span class="string">"wasp.zookeeper.property.clientPort"</span>, <span class="string">"40060"</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/*</span><br><span class="line">     * 载入wasp的jdbc</span><br><span class="line">     */</span></span><br><span class="line">    com.alibaba.wasp.jdbc.Driver.load();</span><br><span class="line">    Connection conn = <span class="keyword">null</span>;</span><br><span class="line">    Statement stat = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      conn = DriverManager.getConnection(<span class="string">"jdbc:wasp:"</span>, props);</span><br><span class="line">      stat = conn.createStatement();</span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 创建user表，主键为user_id</span><br><span class="line">       */</span></span><br><span class="line">      String sql = <span class="string">"CREATE TABLE user &#123;REQUIRED INT64 user_id;"</span></span><br><span class="line">                 + <span class="string">" REQUIRED STRING name; &#125;"</span></span><br><span class="line">                 + <span class="string">" PRIMARY KEY(user_id),"</span></span><br><span class="line">                 + <span class="string">" ENTITY GROUP ROOT,"</span></span><br><span class="line">                 + <span class="string">" ENTITY GROUP KEY(user_id);"</span>;</span><br><span class="line">      stat.execute(sql);</span><br><span class="line">      Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">      </span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 插入id为1，name为'test'的记录</span><br><span class="line">       */</span></span><br><span class="line">      sql = <span class="string">"INSERT INTO user(user_id,name) values(1,'test');"</span>;</span><br><span class="line">      stat.execute(sql);</span><br><span class="line">      </span><br><span class="line">      <span class="comment">/*</span><br><span class="line">       * 查询user_id为1的记录信息</span><br><span class="line">       * 控制台结果：1,test</span><br><span class="line">       */</span></span><br><span class="line">      sql = <span class="string">"SELECT * FROM user WHERE user_id=1;"</span>;</span><br><span class="line">      ResultSet rs = stat.executeQuery(sql);</span><br><span class="line">      <span class="keyword">for</span> (; rs.next(); ) &#123;</span><br><span class="line">        System.out.println(rs.getString(<span class="string">"user_id"</span>) + <span class="string">","</span> + rs.getString(<span class="string">"name"</span>));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        stat.close();</span><br><span class="line">        conn.close();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>写好代码导出为jar包后，使用如下命令运行程序，运行时需将之前解压<code>wasp-0.10-bin.tar.gz</code>中<code>lib</code>目录加到CLASSPATH中：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp /tmp/wasp-0.10/lib/*:/tmp/WaspExample.jar me.haosdent.test.WaspExample</span><br></pre></td></tr></table></figure></p>
+<p>控制台结果如下，说明已经成功插入记录到Wasp并查询到相关数据：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1,test</span><br></pre></td></tr></table></figure></p>
+<p>而登录上服务器后，进入Wasp Shell，也可以查询到之前创建的user表信息<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 显示所有表</span></span><br><span class="line">wasp(main):062:0&gt; show_tables</span><br><span class="line">TABLE</span><br><span class="line">user</span><br><span class="line">1 row(s) <span class="keyword">in</span> 0.0130 seconds</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看user表的结构</span></span><br><span class="line">wasp(main):065:0&gt; describe_table <span class="string">'user'</span></span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">| Field                     | Type     | REQUIRED | Key | EGK |</span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">| user_id                   | INT64    | REQUIRED | PRI | EGK |</span><br><span class="line">| name                      | STRING   | REQUIRED |     |     |</span><br><span class="line">+---------------------------+----------+----------+-----+-----+</span><br><span class="line">1 row(s) <span class="keyword">in</span> 0.0050 seconds</span><br></pre></td></tr></table></figure></p>
+<p>上手示例到这里已经结束，关于Wasp更多有趣的功能你可以从此wiki的其他文章中更进一步了解。若操作过程中有任何疑问或需求，欢迎到此处提<a href="https://github.com/alibaba/wasp/issues?state=open" target="_blank" rel="external">issue</a>。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-07-23T07:31:08.000Z"><a href="/2013/07/23/CDH4_HDFS新特性/">Jul 23 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/07/23/CDH4_HDFS新特性/">CDH4 HDFS新特性</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <ol>
+<li>NameNode HA</li>
+<li>NameNode Federation</li>
+<li>新的HDFS append实现 <a href="https://issues.apache.org/jira/browse/HDFS-265" target="_blank" rel="external">HDFS-265</a></li>
+<li>WebHDFS HDFS的RESTful接口</li>
+<li>支持符号链接 <a href="https://issues.apache.org/jira/browse/HDFS-245" target="_blank" rel="external">HDFS-245</a></li>
+<li>Domain Socket 当DFSClient和目标DataNode处于同一台机器上时，直接打开文件进行读取。<a href="https://issues.apache.org/jira/browse/HDFS-347" target="_blank" rel="external">HDFS-347</a></li>
+<li>去除本地URI的DNS解析 <a href="https://issues.apache.org/jira/browse/HADOOP-9150" target="_blank" rel="external">HADOOP-9150</a></li>
+<li>FUSE 将HDFS挂载到本地 <a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH4/latest/CDH4-Security-Guide/cdh4sg_topic_12.html#topic_12_unique_2" target="_blank" rel="external">FUSE</a></li>
+<li>在存放HDFS的副本时，可设置考虑上所剩磁盘空间容量这个因素 <a href="https://issues.apache.org/jira/browse/HDFS-1804" target="_blank" rel="external">HDFS-1804</a></li>
+<li>改善NameNode 健康报告的性能问题 <a href="https://issues.apache.org/jira/browse/HDFS-3990" target="_blank" rel="external">HDFS-3990</a></li>
+<li>HDFS文件加密传输，Shuffle和Web UI可使用HTTPS。<a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH4/latest/CDH4-Security-Guide/cdh4sg_topic_14.html#topic_14_unique_2" target="_blank" rel="external">HDFS Encrypted Transport</a></li>
+</ol>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-06-19T06:11:57.000Z"><a href="/2013/06/19/Apache-Flume介绍/">Jun 19 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/06/19/Apache-Flume介绍/">Apache Flume介绍</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>之前折腾Apache Flume时做的一个slide，Apache Flume是一个开源的分布式日志收集系统，在可靠性和可拓展性方面实现的非常好，介绍如下：</p>
+<div style="text-align: center;"><iframe allowfullscreen frameborder="0" height="486" marginheight="0" marginwidth="0" mozallowfullscreen="" scrolling="no" src="http://www.slideshare.net/slideshow/embed_code/23178423" style="border-width: 1px 1px 0; border: 1px solid #CCC; margin-bottom: 5px;" webkitallowfullscreen="" width="597"> </iframe> </div>
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-06-01T08:40:59.000Z"><a href="/2013/06/01/About/">Jun 1 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/06/01/About/">About</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h1 id="About-me"><a href="#About-me" class="headerlink" title="About me"></a>About me</h1><p><img src="/images/haosdent.jpg" alt="haosdent" style="width: 200px;"></p>
+<ul>
+<li><a href="mailto:haosdent@gmail.com" target="_blank" rel="external">Email</a></li>
+<li><a href="https://raw.github.com/haosdent/resume/master/resume_english.pdf" target="_blank" rel="external">Resume</a></li>
+<li><a href="https://github.com/haosdent" target="_blank" rel="external">Github</a></li>
+<li><a href="https://www.linkedin.com/profile/view?id=129687654" target="_blank" rel="external">Linkedin</a></li>
+<li><a href="https://issues.apache.org/jira/secure/ViewProfile.jspa?name=haosdent@gmail.com" target="_blank" rel="external">Apache JIRA</a></li>
+</ul>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-05-22T03:26:28.000Z"><a href="/2013/05/22/几个开源的日志系统/">May 22 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/05/22/几个开源的日志系统/">几个开源的日志系统</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>最近在看几个日志系统，写下以备忘。感觉挺多都设计得挺类似的，比方说合并小文件以减少对文件系统的IO，或者说end-to-end等方式实现高可靠性等。当然也有一些实现细节上的不同与特殊之处。简单记录如下：</p>
+<ul>
+<li><p>Chukwa</p>
+<ul>
+<li>agent 收集数据</li>
+<li>adaptor 预处理数据</li>
+<li>collector 采集合并数据 agent会选择一个空闲的collector</li>
+<li>demux 数据处理</li>
+<li>archive 文件合并成Sequence File，去除重复内容</li>
+</ul>
+</li>
+<li><p>Kafka消息发布订阅系统，消息按topic组织，topic再按partition分区，使用zookeeper做负载均衡；</p>
+<ul>
+<li>无内存缓存；</li>
+<li>顺序append数据，积累到一定程度再删除；</li>
+<li>消息投递为客户端主动pull；</li>
+<li>broker 使用zero-copy(DMA)提高速率</li>
+<li>producer 两种接口，向broker发布，通过zookeeper注册listener及获取所有broker</li>
+<li>consumer 两种接口，将消息写向中央存储</li>
+</ul>
+</li>
+<li><p>Scribe当后端存储系统crash时，scribe将数据写到本地磁盘，待正常后重新加载</p>
+<ul>
+<li>agent 使用thrift client发送数据</li>
+<li>collector 根据配置文件，将不同的topic发送到不同的对象</li>
+<li>store 支持的类型丰富</li>
+</ul>
+</li>
+<li><p>Timetunnel使用zookeeper负责broker和client的状态同步</p>
+<ul>
+<li>使用thrift做通讯层</li>
+<li>client 安全认证，发布，认证的API</li>
+<li>router 访问入口；负责路由，安全认证，负载均衡；通过安全认证后，使client和broker建立正确的连接</li>
+<li>broker 负责消息的存储转发</li>
+</ul>
+</li>
+<li><p>Flume agent三种级别的可靠性：end-to-end, Store on failure(类似Scribe), Best effort</p>
+<ul>
+<li>agent, collector和storage均可水平拓展</li>
+<li>agent和collector由master统一管理</li>
+<li>agent 由source和sink组成，将数据源的数据发送给collector</li>
+<li>collector 由source和sink组成，汇总agent的数据，存到storage</li>
+<li>storage</li>
+<li>master 管理协调agent和collector的配置等信息；分单点和多点模式，多点模式容错性好<div></div></li>
+</ul>
+</li>
+</ul>
+<p>总的感觉是，Kafka实现得很好，不过可能因为是Linkedin自己根据自己的一些场景来弄的。所以通用性可能不如Flume好。Flume现在应该是最通用和成熟的。目前这几个都是可以将日志记录到HDFS上，以便于使用Hadoop等进行进一步分析处理。</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-04-12T18:52:56.000Z"><a href="/2013/04/13/华农xxx的时候上去吹水用的幻灯片/">Apr 13 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/04/13/华农xxx的时候上去吹水用的幻灯片/">华农xxx的时候上去吹水用的幻灯片</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>这是大三上给人介绍Node.js所用的幻灯片，放到github上了。</p>
+<p>大家还是直接到这里到这里看吧：<a href="http://haosdent.github.io/NodeJsSlide/" target="_blank" rel="external">http://haosdent.github.io/NodeJsSlide/</a></p>
+<p>其实俺有机会还再想讲虚拟化和Clojure的, 因为这是俺大学生涯中的精髓啊, 不过不知道有没有机会让我来讲了…..</p>
+
+      
+    </div>
+    <footer>
+            
+        
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-04-12T18:38:47.000Z"><a href="/2013/04/13/大三分享Hadoop所用的幻灯片/">Apr 13 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/04/13/大三分享Hadoop所用的幻灯片/">大三分享Hadoop所用的幻灯片</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>大三上学期曾给一些童鞋介绍过Hadoop：</p>
+<div style="text-align: center;"><iframe frameborder="0" height="400" src="http://prezi.com/embed/x41oogytsdkc/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;features=undefined&amp;disabled_features=undefined" width="550"></iframe></div>
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-04-12T18:32:37.000Z"><a href="/2013/04/13/大二分享Linux所用的幻灯片/">Apr 13 2013</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/04/13/大二分享Linux所用的幻灯片/">大二分享Linux所用的幻灯片</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <div style="text-align: center;"><iframe src="http://prezi.com/embed/njy9rnnprjv-/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;features=undefined&amp;disabled_features=undefined" width="550" height="400" frameborder="0"></iframe></div>
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Linux/">Linux</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+
+  <nav id="pagination">
+  
+  
+    <a href="/archives/2013/page/2/" class="alignright next">Nächste Seite</a>
+  
+  <div class="clearfix"></div>
+</nav>
+</div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>

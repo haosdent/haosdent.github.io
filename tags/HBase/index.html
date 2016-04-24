@@ -1,0 +1,250 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>HBase | haosdent</title>
+  <meta name="author" content="Haosdent Huang">
+  
+  <meta name="description" content="Hadoop,HBase,Spark,JavaScript,Java,JVM,Golang,C,Python">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="haosdent"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+  
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="canonical" href="http://blog.haosdent.me/tags/HBase/index.html" />
+  <link rel="alternate" href="/atom.xml" title="haosdent" type="application/atom+xml">
+  
+  
+  
+
+  
+  
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="blog-header">
+  <h1><a href="/">haosdent</a></h1>
+  <h2><a href="/">Just for fun</a></h2>
+</div>
+<nav id="main-nav" class="blog-nav">
+  <ul>
+    
+      <li><a href="/">首页/Home</a></li>
+    
+      <li><a href="/archives">归档/Archives</a></li>
+    
+      <li><a href="/2013/06/01/About/">关于/About</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div>
+</header>
+  <div id="content" class="inner">
+    
+      <div id="main-col" class="alignleft"><div id="wrapper">
+<h2 class="archive-title tag">HBase</h2>
+
+
+  
+    <article class="post">
+  
+    <div class="gallery">
+  <div class="photoset">
+    
+      <img src="">
+    
+  </div>
+  <div class="control">
+    <div class="prev"></div>
+    <div class="next"></div>
+  </div>
+</div>
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2014-05-04T16:00:01.000Z"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">May 5 2014</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2014/05/05/Hadoop-lzo找不到Native库解决方法/">Hadoop lzo找不到Native库解决方法</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Hadoop lzo相关的错误有两个，分别为：</p>
+<ol>
+<li>Could not load native gpl library</li>
+<li>native-lzo library not available<br>下面会分别说明</li>
+</ol>
+<h3 id="Could-not-load-native-gpl-library"><a href="#Could-not-load-native-gpl-library" class="headerlink" title="Could not load native gpl library"></a>Could not load native gpl library</h3><p>很多HBase用户在用BulkLoad从Hadoop往HBase导入数据的时候，会遇到如下情况。报hadoop lzo找不到gplcompression的错误。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ERROR lzo.GPLNativeCodeLoader: Could not load native gpl library</span><br><span class="line">java.lang.UnsatisfiedLinkError: no gplcompression in java.library.path</span><br><span class="line">    at java.lang.ClassLoader.loadLibrary(ClassLoader.java:1738)     </span><br><span class="line">    at java.lang.Runtime.loadLibrary0(Runtime.java:823)     </span><br><span class="line">    at java.lang.System.loadLibrary(System.java:1028)     </span><br><span class="line">    at com.Hadoop.compression.lzo.GPLNativeCodeLoader.&lt;clinit&gt;</span><br></pre></td></tr></table></figure>
+<p>这个错误是因为生成HFile的时候开启了LZO压缩，开启LZO压缩可以有效的减少HFile大小（压缩比平均20%），有效减少distcp传输时间。但由于云梯1的<code>java.library.path</code>路径下并不包含gplcompression这个Native库，所以若生成HFile时开启LZO，则会报如上错误。解决方法很简单，将<a href="/files/hadoop-lzo-0.4.20-mr1.jar">hadoop-lzo-0.4.20-mr1</a>（MapReduce 1编译版本）或<a href="/files/hadoop-lzo-0.4.20.jar">hadoop-lzo-0.4.20</a>（MapReduce 2编译版本）下载的jar包加入到<code>-libjars</code>参数重新执行即可。</p>
+<p>原因是hadoop-lzo的作者考虑到了上述情况，所以直接将gplcompression打包进了jar中。查看<code>hadoop-lzo-0.4.20-mr1.jar</code>可发现，<code>gplcompression</code>的Native库，都已经加入到jar包中的 <code>native/Linux-amd64-64/lib</code>下面</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$: jar -tf hadoop-lzo-0.4.20-mr1.jar |grep native</span><br><span class="line">native/</span><br><span class="line">native/Linux-amd64-64/</span><br><span class="line">native/Linux-amd64-64/lib/</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.a</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.la</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0.0.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so.0</span><br><span class="line">native/Linux-amd64-64/lib/libgplcompression.so</span><br></pre></td></tr></table></figure>
+<p>hadoop-lzo的实现中会先将gplcompression的Native库从jar包中解压到临时地址，并load进该库。详细代码可参见作者托管在Github上的代码<a href="https://github.com/twitter/hadoop-lzo/blob/master/src/main/java/com/hadoop/compression/lzo/GPLNativeCodeLoader.java#L85" target="_blank" rel="external">GPLNativeCodeLoader#unpackBinaries</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// locate the binaries inside the jar</span></span><br><span class="line">String fileName = System.mapLibraryName(LIBRARY_NAME);</span><br><span class="line">String directory = getDirectoryLocation();</span><br><span class="line"><span class="comment">// use the current defining classloader to load the resource</span></span><br><span class="line">InputStream is = GPLNativeCodeLoader.class.getResourceAsStream(directory + <span class="string">"/"</span> + fileName);</span><br></pre></td></tr></table></figure>
+<h3 id="native-lzo-library-not-available"><a href="#native-lzo-library-not-available" class="headerlink" title="native-lzo library not available"></a>native-lzo library not available</h3><p>另一个与Hadoop lzo常见的错误是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.RuntimeException: native-lzo library not available</span><br></pre></td></tr></table></figure>
+<p>这个错误是执行你的写HDFS程序的机器没有安装<code>lzo-devel</code>，程序在<code>LD_LIBRARY_PATH</code>下找不到<code>liblzo2.so.2</code>导致的，在该机器上执行如下命令安装即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install lzo lzo-devel</span><br></pre></td></tr></table></figure>
+<p>或者直接到已安装lzo的机器上将<code>/usr/lib64/liblzo2.so.2</code>下到本地，然后代码中手动load即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.load(liblzo2.so.2的存放地址);</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer>
+            
+        
+  
+  <div class="tags">
+    <a href="/tags/Hadoop/">Hadoop</a>, <a href="/tags/HBase/">HBase</a>
+  </div>
+
+                
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  
+
+  <nav id="pagination">
+  
+  
+  <div class="clearfix"></div>
+</nav>
+</div></div>
+      <aside id="sidebar" class="alignright">
+  <div class="search">
+ <form>
+    <input type="search" placeholder="Search" results="0" id="st-search-input" class="st-search-input" autocomplete="off" autocorrect="off" autocapitalize="off" style="outline: none;height: 38px;border-radius: 0px;">
+  </form>
+</div>
+
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">Tags</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ECS/">ECS</a><small>1</small></li>
+  
+    <li><a href="/tags/HBase/">HBase</a><small>1</small></li>
+  
+    <li><a href="/tags/Hadoop/">Hadoop</a><small>4</small></li>
+  
+    <li><a href="/tags/Linux/">Linux</a><small>1</small></li>
+  
+    <li><a href="/tags/aliyun/">aliyun</a><small>1</small></li>
+  
+    <li><a href="/tags/arm/">arm</a><small>1</small></li>
+  
+    <li><a href="/tags/java/">java</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/perf/">perf</a><small>1</small></li>
+  
+    <li><a href="/tags/raspberry/">raspberry</a><small>1</small></li>
+  
+    <li><a href="/tags/sysdig/">sysdig</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="aligncenter">
+  
+  &copy; 2016 Haosdent Huang
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var Swiftype = window.Swiftype || {};
+  (function() {
+    Swiftype.key = 'WZC9JRxfLaxNsVmg4TpB';
+
+    /** DO NOT EDIT BELOW THIS LINE **/
+    var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+    script.src = "//s.swiftypecdn.com/embed.js";
+    var entry = document.getElementsByTagName('script')[0];
+    entry.parentNode.insertBefore(script, entry);
+  }());
+</script>
+
+
+<div id="scroll2top">
+<img src="/scroll2top/arrow.png"/>
+</div>
+<script src="/scroll2top/scroll2top.min.js"></script>
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script src="https://www.zybuluo.com/static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</script>
+
+
+</body>
+</html>
