@@ -4,7 +4,7 @@
   <url>
     <loc>http://blog.haosdent.me/2016/04/24/mesos-on-arm/</loc>
     
-    <lastmod>2016-04-25T08:28:52.000Z</lastmod>
+    <lastmod>2016-04-26T01:26:59.000Z</lastmod>
     
   </url>
   
@@ -16,14 +16,7 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2012/05/17/%E5%81%B6%E6%9C%89%E6%89%80%E6%84%9F/</loc>
-    
-    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://blog.haosdent.me/2013/06/19/Apache-Flume%E4%BB%8B%E7%BB%8D/</loc>
+    <loc>http://blog.haosdent.me/2013/07/23/CDH4_HDFS%E6%96%B0%E7%89%B9%E6%80%A7/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
@@ -37,7 +30,7 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2013/11/24/Hadoop%E6%96%AD%E7%94%B5%E4%BF%9D%E6%8A%A4/</loc>
+    <loc>http://blog.haosdent.me/2013/06/01/About/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
@@ -51,20 +44,6 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2014/02/11/jcgroup/</loc>
-    
-    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://blog.haosdent.me/2016/02/06/libhbase%E7%BC%96%E8%AF%91%E5%B0%8F%E8%AE%B0/</loc>
-    
-    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://blog.haosdent.me/2012/09/27/(%E8%AF%91)%E6%9C%80%E6%B5%81%E8%A1%8C%E7%9A%8410%E4%B8%AA-Javascript-MVC-%E6%A1%86%E6%9E%B6%E4%B9%8B%E5%AF%B9%E6%AF%94/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
@@ -72,14 +51,14 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2013/06/01/About/</loc>
+    <loc>http://blog.haosdent.me/2013/11/24/Hadoop%E6%96%AD%E7%94%B5%E4%BF%9D%E6%8A%A4/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2013/05/22/%E5%87%A0%E4%B8%AA%E5%BC%80%E6%BA%90%E7%9A%84%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9F/</loc>
+    <loc>http://blog.haosdent.me/2014/02/11/jcgroup/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
@@ -87,6 +66,20 @@
   
   <url>
     <loc>http://blog.haosdent.me/2013/04/13/%E5%8D%8E%E5%86%9Cxxx%E7%9A%84%E6%97%B6%E5%80%99%E4%B8%8A%E5%8E%BB%E5%90%B9%E6%B0%B4%E7%94%A8%E7%9A%84%E5%B9%BB%E7%81%AF%E7%89%87/</loc>
+    
+    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://blog.haosdent.me/2013/06/19/Apache-Flume%E4%BB%8B%E7%BB%8D/</loc>
+    
+    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://blog.haosdent.me/2016/02/06/libhbase%E7%BC%96%E8%AF%91%E5%B0%8F%E8%AE%B0/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
@@ -107,13 +100,6 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2013/04/13/%E5%B2%81%E6%9C%AB%E6%80%BB%E7%BB%93/</loc>
-    
-    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://blog.haosdent.me/2013/11/24/%E6%83%8A%E9%B8%BF%E4%B8%80%E7%9E%A5%E4%B9%8BRocksDB/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
@@ -121,7 +107,14 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2013/07/23/CDH4_HDFS%E6%96%B0%E7%89%B9%E6%80%A7/</loc>
+    <loc>http://blog.haosdent.me/2013/05/22/%E5%87%A0%E4%B8%AA%E5%BC%80%E6%BA%90%E7%9A%84%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9F/</loc>
+    
+    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://blog.haosdent.me/2013/04/13/%E5%B2%81%E6%9C%AB%E6%80%BB%E7%BB%93/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
@@ -135,6 +128,13 @@
   </url>
   
   <url>
+    <loc>http://blog.haosdent.me/2014/05/24/%E9%98%BF%E9%87%8C%E4%BA%91ECS%E4%B8%8AHadoop-HDFS%E7%9A%84%E7%AE%80%E5%8D%95%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/</loc>
+    
+    <lastmod>2016-04-24T09:28:01.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://blog.haosdent.me/2012/08/27/%E7%BB%99HCI%E6%96%B0%E6%89%8B%E7%9A%84%E5%9F%B9%E8%AE%AD%E8%B5%84%E6%96%99%EF%BC%88%E5%B7%A5%E5%85%B7%E7%AF%87%EF%BC%89/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
@@ -142,7 +142,7 @@
   </url>
   
   <url>
-    <loc>http://blog.haosdent.me/2014/05/24/%E9%98%BF%E9%87%8C%E4%BA%91ECS%E4%B8%8AHadoop-HDFS%E7%9A%84%E7%AE%80%E5%8D%95%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/</loc>
+    <loc>http://blog.haosdent.me/2012/05/17/%E5%81%B6%E6%9C%89%E6%89%80%E6%84%9F/</loc>
     
     <lastmod>2016-04-24T09:28:01.000Z</lastmod>
     
